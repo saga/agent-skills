@@ -1,0 +1,26 @@
+{
+  "name": "agent-skills",
+  "version": "1.0.0",
+  "description": "POC code",
+  "homepage": "https://github.com/saga/agent-skills#readme",
+  "bugs": {
+    "url": "https://github.com/saga/agent-skills/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saga/agent-skills.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx tsx index.ts",
+    "build": "tsx"
+  },
+  "dependencies": {
+    "@github/copilot-sdk": "^0.1.22",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
