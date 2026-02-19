@@ -30,26 +30,26 @@ class $ {
    * Fetch content from URL
    */
   async fetchContent(e) {
-    return new Promise((t, n) => {
-      const s = e.startsWith("https:") ? u : d, o = {
+    return new Promise((t, o) => {
+      const s = e.startsWith("https:") ? u : d, n = {
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
-      }, i = s.get(e, o, (r) => {
+      }, i = s.get(e, n, (r) => {
         if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location) {
           const c = new URL(r.headers.location, e).toString();
-          console.log(`Redirecting to: ${c}`), this.fetchContent(c).then(t).catch(n);
+          console.log(`Redirecting to: ${c}`), this.fetchContent(c).then(t).catch(o);
           return;
         }
         if (r.statusCode !== 200) {
-          n(new Error(`HTTP ${r.statusCode}: ${r.statusMessage}`));
+          o(new Error(`HTTP ${r.statusCode}: ${r.statusMessage}`));
           return;
         }
         let a = "";
         r.setEncoding("utf8"), r.on("data", (c) => a += c), r.on("end", () => t(a));
       });
-      i.on("error", n), i.setTimeout(3e4, () => {
-        i.destroy(), n(new Error("Request timeout"));
+      i.on("error", o), i.setTimeout(3e4, () => {
+        i.destroy(), o(new Error("Request timeout"));
       });
     });
   }
@@ -64,27 +64,29 @@ class $ {
       /<div[^>]*id="[^"]*(?:main-content|article|post-content|entry-content)[^"]*"[^>]*>([\s\S]*?)<\/div>/i
     ];
     for (const s of t) {
-      const o = e.match(s);
-      if (o)
-        return o[1];
+      const n = e.match(s);
+      if (n)
+        return n[1];
     }
-    const n = e.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-    return n ? n[1] : e;
+    const o = e.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    return o ? o[1] : e;
   }
   /**
    * Clean HTML content
    */
   cleanHtml(e) {
-    return e.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "").replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "").replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, "").replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "").replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "").replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "").replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, "").replace(/<!--[\s\S]*?-->/g, "");
+    let t = e;
+    return t = t.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ""), t = t.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ""), t = t.replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, ""), t = t.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, ""), t = t.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, ""), t = t.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, ""), t = t.replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, ""), t = t.replace(/<!--[\s\S]*?-->/g, ""), t;
   }
   /**
    * Convert HTML to Markdown
    */
   htmlToMarkdown(e) {
-    const t = e.match(/<title[^>]*>(.*?)<\/title>/i), n = e.match(/<h1[^>]*>(.*?)<\/h1>/i), s = t ? this.stripTags(t[1]) : n ? this.stripTags(n[1]) : null, o = this.nativeHtmlToMarkdown(e);
-    return s && !o.startsWith("# ") && (o = "# " + s + `
+    const t = e.match(/<title[^>]*>(.*?)<\/title>/i), o = e.match(/<h1[^>]*>(.*?)<\/h1>/i), s = t ? this.stripTags(t[1]) : o ? this.stripTags(o[1]) : null;
+    let n = this.nativeHtmlToMarkdown(e);
+    return s && !n.startsWith("# ") && (n = "# " + s + `
 
-` + o), o;
+` + n), n;
   }
   /**
    * HTML to Markdown converter
@@ -115,7 +117,7 @@ class $ {
 
 ###### $1
 
-`), t = t.replace(/<(strong|b)[^>]*>(.*?)<\/\1>/gi, "**$2**"), t = t.replace(/<(em|i)[^>]*>(.*?)<\/\1>/gi, "*$2*"), t = t.replace(/<code[^>]*>(.*?)<\/code>/gi, "`$1`"), t = t.replace(/<pre[^>]*>\s*<code[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi, "\n\n```\n$1\n```\n\n"), t = t.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, "\n\n```\n$1\n```\n\n"), t = t.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, (n, s) => `
+`), t = t.replace(/<(strong|b)[^>]*>(.*?)<\/\1>/gi, "**$2**"), t = t.replace(/<(em|i)[^>]*>(.*?)<\/\1>/gi, "*$2*"), t = t.replace(/<code[^>]*>(.*?)<\/code>/gi, "`$1`"), t = t.replace(/<pre[^>]*>\s*<code[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi, "\n\n```\n$1\n```\n\n"), t = t.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, "\n\n```\n$1\n```\n\n"), t = t.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, (o, s) => `
 
 ` + s.split(`
 `).map((r) => {
@@ -124,7 +126,7 @@ class $ {
     }).filter((r) => r).join(`
 `) + `
 
-`), t = t.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (n, s) => `
+`), t = t.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (o, s) => `
 
 ` + (s.match(/<li[^>]*>([\s\S]*?)<\/li>/gi) || []).map((r) => {
       const a = r.replace(/<li[^>]*>([\s\S]*?)<\/li>/i, "$1");
@@ -132,12 +134,12 @@ class $ {
     }).join(`
 `) + `
 
-`), t = t.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (n, s) => {
-      const o = s.match(/<li[^>]*>([\s\S]*?)<\/li>/gi) || [];
+`), t = t.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (o, s) => {
+      const n = s.match(/<li[^>]*>([\s\S]*?)<\/li>/gi) || [];
       let i = 1;
       return `
 
-` + o.map((a) => {
+` + n.map((a) => {
         const c = a.replace(/<li[^>]*>([\s\S]*?)<\/li>/i, "$1");
         return i++ + ". " + this.stripTags(c).trim();
       }).join(`
@@ -160,21 +162,21 @@ $1
    * Convert HTML tables to Markdown
    */
   convertTables(e) {
-    return e.replace(/<table[^>]*>([\s\S]*?)<\/table>/gi, (t, n) => {
-      const s = n.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi) || [];
+    return e.replace(/<table[^>]*>([\s\S]*?)<\/table>/gi, (t, o) => {
+      const s = o.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi) || [];
       if (s.length === 0) return "";
-      let o = `
+      let n = `
 
 `;
       return s.forEach((i, r) => {
-        const c = (i.match(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi) || []).map((m) => {
-          const g = m.replace(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/i, "$1");
+        const c = (i.match(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi) || []).map((p) => {
+          const g = p.replace(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/i, "$1");
           return this.stripTags(g).trim();
         });
-        c.length > 0 && (o += "| " + c.join(" | ") + ` |
-`, r === 0 && (o += "|" + c.map(() => " --- |").join("") + `
+        c.length > 0 && (n += "| " + c.join(" | ") + ` |
+`, r === 0 && (n += "|" + c.map(() => " --- |").join("") + `
 `));
-      }), o + `
+      }), n + `
 `;
     });
   }
@@ -203,15 +205,15 @@ $1
       "&lsquo;": "'",
       "&rsquo;": "'"
     };
-    return e.replace(/&[a-zA-Z0-9#]+;/g, (n) => t[n] || n);
+    return e.replace(/&[a-zA-Z0-9#]+;/g, (o) => t[o] || o);
   }
   /**
    * Generate output filename from URL
    */
   generateOutputFilename(e) {
     try {
-      const n = new URL(e).pathname;
-      return ((l.basename(n) || "article").replace(/\.[^/.]+$/, "") || "article") + ".md";
+      const o = new URL(e).pathname;
+      return ((l.basename(o) || "article").replace(/\.[^/.]+$/, "") || "article") + ".md";
     } catch {
       return "article.md";
     }
@@ -225,28 +227,33 @@ $1
    */
   async fetchContentWithChrome(e) {
     const t = await import("puppeteer");
-    let n;
+    let o;
     try {
       console.log(`Connecting to Chrome via Puppeteer on port ${this.chromePort}...`);
       try {
-        n = await t.connect({
+        o = await t.connect({
           browserURL: `http://localhost:${this.chromePort}`,
           defaultViewport: null
         });
       } catch {
-        console.log("Could not connect to existing Chrome, launching new browser..."), n = await t.launch({
+        console.log("Could not connect to existing Chrome, launching new browser..."), o = await t.launch({
           headless: !0,
           args: ["--no-sandbox", "--disable-setuid-sandbox"]
         });
       }
-      const s = await n.pages(), o = s.length > 0 ? s[0] : await n.newPage();
-      console.log(`Navigating to: ${e}`), await o.goto(e, { waitUntil: "networkidle0", timeout: 6e4 });
-      const i = await o.content();
-      return await n.close(), i;
+      const s = await o.pages(), n = s.length > 0 ? s[0] : await o.newPage();
+      console.log(`Navigating to: ${e}`);
+      try {
+        await n.goto(e, { waitUntil: "domcontentloaded", timeout: 3e4 }), await new Promise((r) => setTimeout(r, 5e3));
+      } catch (r) {
+        console.log(`Page load warning: ${r.message}`);
+      }
+      const i = await n.content();
+      return console.log(`Got HTML, length: ${i.length} bytes`), await o.close(), i;
     } catch (s) {
-      if (n)
+      if (o)
         try {
-          await n.close();
+          await o.close();
         } catch {
         }
       throw new Error(`Chrome fetch failed: ${s.message}`);
@@ -259,11 +266,11 @@ $1
       this.useChrome ? e = await this.fetchContentWithChrome(this.url) : e = await this.fetchContent(this.url), console.log(`Downloaded ${e.length} bytes`), console.log("Extracting main content...");
       const t = this.extractMainContent(e);
       console.log("Cleaning HTML...");
-      const n = this.cleanHtml(t);
+      const o = this.cleanHtml(t);
       console.log("Converting to Markdown...");
-      const s = this.htmlToMarkdown(n), o = this.outputPath || this.generateOutputFilename(this.url), i = l.dirname(o);
-      i && i !== "." && h.mkdirSync(i, { recursive: !0 }), h.writeFileSync(o, s, "utf8"), console.log(`
-Success! Markdown saved to: ${o}`), console.log(`Output size: ${s.length} characters`);
+      const s = this.htmlToMarkdown(o), n = this.outputPath || this.generateOutputFilename(this.url), i = l.dirname(n);
+      i && i !== "." && h.mkdirSync(i, { recursive: !0 }), h.writeFileSync(n, s, "utf8"), console.log(`
+Success! Markdown saved to: ${n}`), console.log(`Output size: ${s.length} characters`);
     } catch (e) {
       console.error(`Error: ${e.message}`), process.exit(1);
     }

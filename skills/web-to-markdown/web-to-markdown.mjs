@@ -175,7 +175,7 @@ class WebToMarkdown {
         const title = titleMatch ? this.stripTags(titleMatch[1]) : 
                      (h1Match ? this.stripTags(h1Match[1]) : null);
 
-        const md = this.nativeHtmlToMarkdown(html);
+        let md = this.nativeHtmlToMarkdown(html);
 
         if (title && !md.startsWith('# ')) {
             md = '# ' + title + '\n\n' + md;
@@ -190,7 +190,6 @@ class WebToMarkdown {
     nativeHtmlToMarkdown(html) {
         let md = html;
 
-        // Convert h1-h6 headers
         md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '\n\n# $1\n\n');
         md = md.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '\n\n## $1\n\n');
         md = md.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '\n\n### $1\n\n');
@@ -198,20 +197,13 @@ class WebToMarkdown {
         md = md.replace(/<h5[^>]*>(.*?)<\/h5>/gi, '\n\n##### $1\n\n');
         md = md.replace(/<h6[^>]*>(.*?)<\/h6>/gi, '\n\n###### $1\n\n');
 
-        // Convert strong/b tags
         md = md.replace(/<(strong|b)[^>]*>(.*?)<\/\1>/gi, '**$2**');
-
-        // Convert em/i tags
         md = md.replace(/<(em|i)[^>]*>(.*?)<\/\1>/gi, '*$2*');
-
-        // Convert code tags
         md = md.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
 
-        // Convert pre/code blocks
         md = md.replace(/<pre[^>]*>\s*<code[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi, '\n\n```\n$1\n```\n\n');
         md = md.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, '\n\n```\n$1\n```\n\n');
 
-        // Convert blockquotes
         md = md.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, (match, content) => {
             const lines = content.split('\n');
             const quoted = lines.map(line => {
@@ -224,7 +216,6 @@ class WebToMarkdown {
             return '\n\n' + quoted + '\n\n';
         });
 
-        // Convert unordered lists
         md = md.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (match, content) => {
             const items = content.match(/<li[^>]*>([\s\S]*?)<\/li>/gi) || [];
             const listItems = items.map(item => {
@@ -234,7 +225,6 @@ class WebToMarkdown {
             return '\n\n' + listItems + '\n\n';
         });
 
-        // Convert ordered lists
         md = md.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (match, content) => {
             const items = content.match(/<li[^>]*>([\s\S]*?)<\/li>/gi) || [];
             let counter = 1;
@@ -245,30 +235,19 @@ class WebToMarkdown {
             return '\n\n' + listItems + '\n\n';
         });
 
-        // Convert links
         md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
 
-        // Convert images
         md = md.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>/gi, '![$2]($1)');
         md = md.replace(/<img[^>]*alt="([^"]*)"[^>]*src="([^"]*)"[^>]*>/gi, '![$1]($2)');
         md = md.replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, '![]($1)');
 
-        // Convert tables
         md = this.convertTables(md);
 
-        // Convert paragraphs
         md = md.replace(/<p[^>]*>(.*?)<\/p>/gi, '\n\n$1\n\n');
-
-        // Convert line breaks
         md = md.replace(/<br\s*\/?>/gi, '\n');
-
-        // Remove remaining HTML tags
         md = md.replace(/<[^>]+>/g, '');
-
-        // Decode HTML entities
         md = this.decodeHtmlEntities(md);
 
-        // Clean up excessive whitespace
         md = md.replace(/\n{4,}/g, '\n\n\n');
         md = md.replace(/\n{3}/g, '\n\n');
 
@@ -385,9 +364,17 @@ class WebToMarkdown {
             const page = pages.length > 0 ? pages[0] : await browser.newPage();
 
             console.log(`Navigating to: ${url}`);
-            await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+            
+            try {
+                await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await new Promise(resolve => setTimeout(resolve, 5000));
+            } catch (waitError) {
+                console.log(`Page load warning: ${waitError.message}`);
+            }
 
             const html = await page.content();
+            
+            console.log(`Got HTML, length: ${html.length} bytes`);
             
             await browser.close();
             
