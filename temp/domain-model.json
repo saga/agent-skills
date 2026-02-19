@@ -1,0 +1,52 @@
+{
+  "entities": {
+    "User": {
+      "description": "用户实体",
+      "properties": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    "Order": {
+      "description": "订单实体",
+      "properties": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "totalAmount",
+          "type": "number",
+          "required": true
+        }
+      ]
+    }
+  },
+  "relations": [
+    {
+      "source": "User",
+      "target": "Order",
+      "type": "1:N"
+    }
+  ],
+  "rules": []
+}
