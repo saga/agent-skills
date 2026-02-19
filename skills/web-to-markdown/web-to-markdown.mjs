@@ -3,6 +3,10 @@
 /**
  * Web to Markdown Converter
  * Fetches web content and converts it to clean Markdown format
+ * 
+ * Supports two modes:
+ * 1. Direct HTTP fetch (default)
+ * 2. Chrome DevTools MCP / Puppeteer (for pages requiring authentication)
  */
 
 import https from 'https';
@@ -18,6 +22,8 @@ class WebToMarkdown {
     constructor() {
         this.url = null;
         this.outputPath = null;
+        this.useChrome = false;
+        this.chromePort = 9222;
     }
 
     /**
@@ -31,19 +37,46 @@ class WebToMarkdown {
             process.exit(1);
         }
 
-        this.url = args[0];
-        this.outputPath = args[1] || null;
+        for (let i = 0; i < args.length; i++) {
+            if (args[i] === '--chrome' || args[i] === '-c') {
+                this.useChrome = true;
+                if (args[i + 1] && !args[i + 1].startsWith('--') && !args[i + 1].startsWith('-')) {
+                    this.chromePort = parseInt(args[i + 1], 10) || 9222;
+                    i++;
+                }
+            } else if (!this.url) {
+                this.url = args[i];
+            } else if (!this.outputPath) {
+                this.outputPath = args[i];
+            }
+        }
+
+        if (!this.url) {
+            this.showUsage();
+            process.exit(1);
+        }
     }
 
     /**
      * Show usage information
      */
     showUsage() {
-        console.log('Usage: node web-to-markdown.mjs <URL> [output-file]');
+        console.log('Usage: node web-to-markdown.mjs <URL> [output-file] [options]');
         console.log('');
-        console.log('Example:');
+        console.log('Arguments:');
+        console.log('  <URL>           The URL to fetch and convert to Markdown');
+        console.log('  [output-file]   Optional output file path');
+        console.log('');
+        console.log('Options:');
+        console.log('  --chrome, -c [port]  Use Chrome DevTools MCP for authenticated pages');
+        console.log('                        (default port: 9222)');
+        console.log('  --help, -h           Show this help message');
+        console.log('');
+        console.log('Examples:');
         console.log('  node web-to-markdown.mjs https://example.com/article');
         console.log('  node web-to-markdown.mjs https://example.com/article ./output.md');
+        console.log('  node web-to-markdown.mjs https://example.com --chrome');
+        console.log('  node web-to-markdown.mjs https://example.com -c 9223');
     }
 
     /**
@@ -119,23 +152,18 @@ class WebToMarkdown {
      * Clean HTML content
      */
     cleanHtml(html) {
-        return html
-            // Remove script tags
-            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-            // Remove style tags
-            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-            // Remove noscript tags
-            .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '')
-            // Remove nav elements
-            .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
-            // Remove header elements (except h1-h6)
-            .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
-            // Remove footer elements
-            .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
-            // Remove aside elements
-            .replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, '')
-            // Remove comments
-            .replace(/<!--[\s\S]*?-->/g, '');
+        let result = html;
+        
+        result = result.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+        result = result.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+        result = result.replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '');
+        result = result.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '');
+        result = result.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '');
+        result = result.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '');
+        result = result.replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, '');
+        result = result.replace(/<!--[\s\S]*?-->/g, '');
+        
+        return result;
     }
 
     /**
@@ -329,12 +357,62 @@ class WebToMarkdown {
     /**
      * Run the conversion
      */
+    /**
+     * Fetch content using Chrome DevTools MCP (via Puppeteer)
+     * This uses the existing Chrome browser session with authentication
+     */
+    async fetchContentWithChrome(url) {
+        const puppeteer = await import('puppeteer');
+        
+        let browser;
+        try {
+            console.log(`Connecting to Chrome via Puppeteer on port ${this.chromePort}...`);
+            
+            try {
+                browser = await puppeteer.connect({
+                    browserURL: `http://localhost:${this.chromePort}`,
+                    defaultViewport: null
+                });
+            } catch (connectError) {
+                console.log(`Could not connect to existing Chrome, launching new browser...`);
+                browser = await puppeteer.launch({
+                    headless: true,
+                    args: ['--no-sandbox', '--disable-setuid-sandbox']
+                });
+            }
+
+            const pages = await browser.pages();
+            const page = pages.length > 0 ? pages[0] : await browser.newPage();
+
+            console.log(`Navigating to: ${url}`);
+            await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+
+            const html = await page.content();
+            
+            await browser.close();
+            
+            return html;
+        } catch (error) {
+            if (browser) {
+                try { await browser.close(); } catch {}
+            }
+            throw new Error(`Chrome fetch failed: ${error.message}`);
+        }
+    }
+
     async run() {
         try {
             this.parseArgs();
             
             console.log(`Fetching: ${this.url}`);
-            const html = await this.fetchContent(this.url);
+            
+            let html;
+            if (this.useChrome) {
+                html = await this.fetchContentWithChrome(this.url);
+            } else {
+                html = await this.fetchContent(this.url);
+            }
+            
             console.log(`Downloaded ${html.length} bytes`);
 
             console.log('Extracting main content...');
@@ -346,16 +424,13 @@ class WebToMarkdown {
             console.log('Converting to Markdown...');
             const markdown = this.htmlToMarkdown(cleanedHtml);
 
-            // Determine output path
             const outputPath = this.outputPath || this.generateOutputFilename(this.url);
             
-            // Ensure directory exists
             const outputDir = path.dirname(outputPath);
             if (outputDir && outputDir !== '.') {
                 fs.mkdirSync(outputDir, { recursive: true });
             }
 
-            // Write output
             fs.writeFileSync(outputPath, markdown, 'utf8');
             
             console.log(`\nSuccess! Markdown saved to: ${outputPath}`);

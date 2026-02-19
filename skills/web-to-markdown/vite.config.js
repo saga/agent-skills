@@ -10,7 +10,7 @@ export default defineConfig({
       formats: ['es']
     },
     rollupOptions: {
-      external: ['http', 'https', 'fs', 'path', 'url']
+      external: ['http', 'https', 'fs', 'path', 'url', 'puppeteer']
     }
   }
 });
