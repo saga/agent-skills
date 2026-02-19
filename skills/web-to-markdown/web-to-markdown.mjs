@@ -7,16 +7,146 @@
  * Supports two modes:
  * 1. Direct HTTP fetch (default)
  * 2. Chrome DevTools MCP / Puppeteer (for pages requiring authentication)
+ * 
+ * Storage:
+ * - Local file (default)
+ * - SQLite database (optional, requires better-sqlite3)
  */
 
 import https from 'https';
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+class StorageManager {
+    constructor(dbPath = null) {
+        this.dbPath = dbPath || path.join(__dirname, 'data', 'web_content.db');
+        this.db = null;
+        this.useDatabase = false;
+    }
+
+    async init() {
+        const dataDir = path.dirname(this.dbPath);
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+        }
+
+        try {
+            const Database = (await import('better-sqlite3')).default;
+            this.db = new Database(this.dbPath);
+            this.db.exec(`
+                CREATE TABLE IF NOT EXISTS web_content (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    url TEXT UNIQUE NOT NULL,
+                    url_hash TEXT NOT NULL,
+                    title TEXT,
+                    markdown TEXT NOT NULL,
+                    html_length INTEGER,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE INDEX IF NOT EXISTS idx_url_hash ON web_content(url_hash);
+                CREATE INDEX IF NOT EXISTS idx_created_at ON web_content(created_at);
+            `);
+            this.useDatabase = true;
+            console.log(`Database initialized: ${this.dbPath}`);
+            return true;
+        } catch (error) {
+            console.log(`Note: Database storage unavailable (${error.message}). Using file storage only.`);
+            console.log(`To enable database storage: npm install better-sqlite3`);
+            return false;
+        }
+    }
+
+    generateUrlHash(url) {
+        return crypto.createHash('sha256').update(url).digest('hex').substring(0, 16);
+    }
+
+    async save(url, title, markdown, htmlLength) {
+        const urlHash = this.generateUrlHash(url);
+        const record = {
+            url,
+            urlHash,
+            title,
+            markdown,
+            htmlLength,
+            savedAt: new Date().toISOString()
+        };
+
+        if (this.useDatabase && this.db) {
+            try {
+                const stmt = this.db.prepare(`
+                    INSERT INTO web_content (url, url_hash, title, markdown, html_length, updated_at)
+                    VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    ON CONFLICT(url) DO UPDATE SET
+                        title = excluded.title,
+                        markdown = excluded.markdown,
+                        html_length = excluded.html_length,
+                        updated_at = CURRENT_TIMESTAMP
+                `);
+                stmt.run(url, urlHash, title, markdown, htmlLength);
+                console.log(`Saved to database (ID: ${urlHash})`);
+                return { success: true, storage: 'database', urlHash };
+            } catch (error) {
+                console.error(`Database save error: ${error.message}`);
+            }
+        }
+
+        const jsonPath = path.join(path.dirname(this.dbPath), `${urlHash}.json`);
+        fs.writeFileSync(jsonPath, JSON.stringify(record, null, 2), 'utf8');
+        console.log(`Saved to JSON file: ${jsonPath}`);
+        return { success: true, storage: 'file', path: jsonPath, urlHash };
+    }
+
+    async findByUrl(url) {
+        const urlHash = this.generateUrlHash(url);
+
+        if (this.useDatabase && this.db) {
+            const stmt = this.db.prepare('SELECT * FROM web_content WHERE url_hash = ?');
+            const row = stmt.get(urlHash);
+            if (row) return row;
+        }
+
+        const jsonPath = path.join(path.dirname(this.dbPath), `${urlHash}.json`);
+        if (fs.existsSync(jsonPath)) {
+            return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+        }
+
+        return null;
+    }
+
+    async list(limit = 50) {
+        if (this.useDatabase && this.db) {
+            const stmt = this.db.prepare('SELECT id, url, url_hash, title, created_at, updated_at FROM web_content ORDER BY updated_at DESC LIMIT ?');
+            return stmt.all(limit);
+        }
+
+        const dataDir = path.dirname(this.dbPath);
+        if (!fs.existsSync(dataDir)) return [];
+
+        const files = fs.readdirSync(dataDir).filter(f => f.endsWith('.json'));
+        return files.slice(0, limit).map(file => {
+            const content = JSON.parse(fs.readFileSync(path.join(dataDir, file), 'utf8'));
+            return {
+                url: content.url,
+                url_hash: content.urlHash,
+                title: content.title,
+                created_at: content.savedAt
+            };
+        });
+    }
+
+    close() {
+        if (this.db) {
+            this.db.close();
+        }
+    }
+}
 
 class WebToMarkdown {
     constructor() {
@@ -24,6 +154,8 @@ class WebToMarkdown {
         this.outputPath = null;
         this.useChrome = false;
         this.chromePort = 9222;
+        this.storage = null;
+        this.saveToDb = true;
     }
 
     /**
@@ -527,6 +659,14 @@ class WebToMarkdown {
         try {
             this.parseArgs();
             
+            this.storage = new StorageManager();
+            await this.storage.init();
+
+            const existing = await this.storage.findByUrl(this.url);
+            if (existing) {
+                console.log(`Found existing content from ${existing.created_at || existing.savedAt}`);
+            }
+            
             console.log(`Fetching: ${this.url}`);
             
             let html;
@@ -547,6 +687,11 @@ class WebToMarkdown {
             console.log('Converting to Markdown...');
             const markdown = this.htmlToMarkdown(cleanedHtml);
 
+            const titleMatch = markdown.match(/^#\s+(.+)$/m);
+            const title = titleMatch ? titleMatch[1] : this.url;
+
+            const storageResult = await this.storage.save(this.url, title, markdown, html.length);
+
             const outputPath = this.outputPath || this.generateOutputFilename(this.url);
             
             const outputDir = path.dirname(outputPath);
@@ -558,15 +703,18 @@ class WebToMarkdown {
             
             console.log(`\nSuccess! Markdown saved to: ${outputPath}`);
             console.log(`Output size: ${markdown.length} characters`);
+            console.log(`Storage: ${storageResult.storage} (${storageResult.urlHash})`);
+
+            this.storage.close();
 
         } catch (error) {
             console.error(`Error: ${error.message}`);
+            if (this.storage) this.storage.close();
             process.exit(1);
         }
     }
 }
 
-// Run if called directly
 const isMainModule = typeof process.argv[1] === 'string' && 
     import.meta.url.startsWith('file://') && 
     (process.argv[1].endsWith('web-to-markdown.mjs') || 
@@ -578,6 +726,7 @@ if (isMainModule) {
 }
 
 export default WebToMarkdown;
+export { StorageManager };
 
 export const mcpHelpers = {
     checkMcpServer: (serverName) => new WebToMarkdown().checkMcpServer(serverName),
