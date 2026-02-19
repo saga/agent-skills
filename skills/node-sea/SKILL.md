@@ -66,10 +66,34 @@ The SEA builder performs these steps:
 3. **Generate Config**: Creates SEA configuration file
 4. **Build Blob**: Uses Node.js `--experimental-sea-config` to generate blob
 5. **Copy Binary**: Creates a copy of the Node.js executable
-6. **Remove Signature**: Removes code signature (macOS/Windows)
+6. **Remove Signature**: Removes code signature using bundled `codesign.mjs`
 7. **Inject Blob**: Embeds your script into the binary using `postject`
-8. **Sign Binary**: Re-signs the binary (macOS only)
+8. **Sign Binary**: Re-signs the binary using bundled `codesign.mjs`
 9. **Cleanup**: Removes temporary files
+
+## Bundled Tools
+
+This skill includes a cross-platform code signing utility:
+
+### codesign.mjs
+
+A Node.js script that provides unified code signing across platforms:
+
+```bash
+# Remove signature
+node codesign.mjs remove <binary-path>
+
+# Add signature
+node codesign.mjs sign <binary-path>
+
+# Verify signature
+node codesign.mjs verify <binary-path>
+```
+
+**Platform Support:**
+- **macOS**: Uses native `codesign` command
+- **Windows**: Uses `signtool` from Windows SDK (auto-detected)
+- **Linux**: No-op (no standard code signing)
 
 ## Output
 
@@ -90,15 +114,16 @@ The result is a single executable file:
 **Windows:**
 - Output automatically gets `.exe` extension
 - May show security warnings due to unsigned binary
-- Can be signed with `signtool` if certificate is available
+- Can be signed with certificate using `codesign.mjs` or `signtool`
 
 **macOS:**
-- Requires `codesign` for removing and re-adding signatures
+- Uses bundled `codesign.mjs` which calls native `codesign`
 - May need to allow the app in Security & Privacy settings
 - Gatekeeper may block unsigned binaries
+- Ad-hoc signing is used by default (no certificate required)
 
 **Linux:**
-- No signature handling required
+- No code signing mechanism
 - Binary may need `chmod +x` to make executable
 
 ### Asset Files
@@ -119,7 +144,7 @@ const config = JSON.parse(getAsset('config.json', 'utf8'));
 ## Error Handling
 
 - Validates Node.js version before building
-- Checks for required tools (postject, codesign, signtool)
+- Checks for required tools (postject)
 - Provides clear error messages for common issues
 - Cleans up temporary files even on failure
 

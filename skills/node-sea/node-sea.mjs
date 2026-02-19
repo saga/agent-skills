@@ -223,22 +223,45 @@ class NodeSEABuilder {
     }
 
     /**
+     * Get path to bundled codesign tool
+     */
+    getCodesignPath() {
+        const bundledCodesign = path.resolve(__dirname, 'codesign.mjs');
+        if (fs.existsSync(bundledCodesign)) {
+            return bundledCodesign;
+        }
+        return null;
+    }
+
+    /**
      * Remove signature (Windows and macOS only)
      */
     removeSignature(outputPath) {
-        if (process.platform === 'darwin') {
-            console.log('Removing macOS signature...');
+        const codesignPath = this.getCodesignPath();
+        
+        if (codesignPath) {
+            console.log('Removing signature using bundled codesign tool...');
             try {
-                execSync(`codesign --remove-signature ${outputPath}`, { stdio: 'ignore' });
+                execSync(`node "${codesignPath}" remove "${outputPath}"`, { stdio: 'inherit' });
             } catch {
-                console.log('No signature to remove or codesign not available');
+                console.log('Signature removal completed with warnings');
             }
-        } else if (process.platform === 'win32') {
-            console.log('Removing Windows signature (if present)...');
-            try {
-                execSync(`signtool remove /s ${outputPath}`, { stdio: 'ignore' });
-            } catch {
-                console.log('No signature to remove or signtool not available');
+        } else {
+            // Fallback to direct system commands
+            if (process.platform === 'darwin') {
+                console.log('Removing macOS signature...');
+                try {
+                    execSync(`codesign --remove-signature "${outputPath}"`, { stdio: 'ignore' });
+                } catch {
+                    console.log('No signature to remove or codesign not available');
+                }
+            } else if (process.platform === 'win32') {
+                console.log('Removing Windows signature (if present)...');
+                try {
+                    execSync(`signtool remove /s "${outputPath}"`, { stdio: 'ignore' });
+                } catch {
+                    console.log('No signature to remove or signtool not available');
+                }
             }
         }
     }
@@ -273,17 +296,29 @@ class NodeSEABuilder {
      * Sign binary (optional, macOS and Windows only)
      */
     signBinary(outputPath) {
-        if (process.platform === 'darwin') {
-            console.log('Signing macOS binary...');
+        const codesignPath = this.getCodesignPath();
+        
+        if (codesignPath) {
+            console.log('Signing binary using bundled codesign tool...');
             try {
-                execSync(`codesign --sign - ${outputPath}`, { stdio: 'ignore' });
-                console.log('Binary signed successfully');
+                execSync(`node "${codesignPath}" sign "${outputPath}"`, { stdio: 'inherit' });
             } catch {
-                console.log('Warning: Could not sign binary');
+                console.log('Signing completed with warnings');
             }
-        } else if (process.platform === 'win32') {
-            console.log('Windows signing skipped (requires certificate)');
-            console.log('The unsigned binary is still runnable');
+        } else {
+            // Fallback to direct system commands
+            if (process.platform === 'darwin') {
+                console.log('Signing macOS binary...');
+                try {
+                    execSync(`codesign --sign - "${outputPath}"`, { stdio: 'ignore' });
+                    console.log('Binary signed successfully');
+                } catch {
+                    console.log('Warning: Could not sign binary');
+                }
+            } else if (process.platform === 'win32') {
+                console.log('Windows signing skipped (requires certificate)');
+                console.log('The unsigned binary is still runnable');
+            }
         }
     }
 
