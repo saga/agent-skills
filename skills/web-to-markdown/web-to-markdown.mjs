@@ -24,21 +24,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 class StorageManager {
-    constructor(dbPath = null) {
-        this.dbPath = dbPath || path.join(__dirname, 'data', 'web_content.db');
+    constructor(dataDir = null) {
+        this.dataDir = dataDir || path.join(__dirname, 'data');
         this.db = null;
         this.useDatabase = false;
     }
 
     async init() {
-        const dataDir = path.dirname(this.dbPath);
-        if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
+        if (!fs.existsSync(this.dataDir)) {
+            fs.mkdirSync(this.dataDir, { recursive: true });
         }
 
         try {
             const Database = (await import('better-sqlite3')).default;
-            this.db = new Database(this.dbPath);
+            const dbPath = path.join(this.dataDir, 'web_content.db');
+            this.db = new Database(dbPath);
             this.db.exec(`
                 CREATE TABLE IF NOT EXISTS web_content (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,11 +54,11 @@ class StorageManager {
                 CREATE INDEX IF NOT EXISTS idx_created_at ON web_content(created_at);
             `);
             this.useDatabase = true;
-            console.log(`Database initialized: ${this.dbPath}`);
+            console.log(`Database initialized: ${dbPath}`);
             return true;
         } catch (error) {
-            console.log(`Note: Database storage unavailable (${error.message}). Using file storage only.`);
-            console.log(`To enable database storage: npm install better-sqlite3`);
+            console.log(`Note: Database storage unavailable. Using markdown file storage.`);
+            console.log(`To enable database: npm install better-sqlite3`);
             return false;
         }
     }
@@ -67,16 +67,37 @@ class StorageManager {
         return crypto.createHash('sha256').update(url).digest('hex').substring(0, 16);
     }
 
+    generateSafeFilename(url) {
+        try {
+            const urlObj = new URL(url);
+            const domain = urlObj.hostname.replace(/\./g, '_');
+            const pathname = urlObj.pathname.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+            return `${domain}${pathname || '_index'}`;
+        } catch {
+            return 'web_content';
+        }
+    }
+
     async save(url, title, markdown, htmlLength) {
         const urlHash = this.generateUrlHash(url);
-        const record = {
-            url,
-            urlHash,
-            title,
-            markdown,
-            htmlLength,
-            savedAt: new Date().toISOString()
-        };
+        const safeName = this.generateSafeFilename(url);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+
+        const frontmatter = `---
+url: "${url}"
+url_hash: "${urlHash}"
+title: "${title.replace(/"/g, '\\"')}"
+html_length: ${htmlLength}
+saved_at: "${new Date().toISOString()}"
+---
+
+`;
+
+        const fullMarkdown = frontmatter + markdown;
+
+        const mdPath = path.join(this.dataDir, `${safeName}.md`);
+        fs.writeFileSync(mdPath, fullMarkdown, 'utf8');
+        console.log(`Saved to markdown file: ${mdPath}`);
 
         if (this.useDatabase && this.db) {
             try {
@@ -90,17 +111,13 @@ class StorageManager {
                         updated_at = CURRENT_TIMESTAMP
                 `);
                 stmt.run(url, urlHash, title, markdown, htmlLength);
-                console.log(`Saved to database (ID: ${urlHash})`);
-                return { success: true, storage: 'database', urlHash };
+                console.log(`Also saved to database (hash: ${urlHash})`);
             } catch (error) {
                 console.error(`Database save error: ${error.message}`);
             }
         }
 
-        const jsonPath = path.join(path.dirname(this.dbPath), `${urlHash}.json`);
-        fs.writeFileSync(jsonPath, JSON.stringify(record, null, 2), 'utf8');
-        console.log(`Saved to JSON file: ${jsonPath}`);
-        return { success: true, storage: 'file', path: jsonPath, urlHash };
+        return { success: true, storage: 'markdown', path: mdPath, urlHash };
     }
 
     async findByUrl(url) {
@@ -112,12 +129,33 @@ class StorageManager {
             if (row) return row;
         }
 
-        const jsonPath = path.join(path.dirname(this.dbPath), `${urlHash}.json`);
-        if (fs.existsSync(jsonPath)) {
-            return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+        const files = fs.readdirSync(this.dataDir).filter(f => f.endsWith('.md'));
+        for (const file of files) {
+            const content = fs.readFileSync(path.join(this.dataDir, file), 'utf8');
+            if (content.includes(`url_hash: "${urlHash}"`)) {
+                return this.parseMarkdownFile(content);
+            }
         }
 
         return null;
+    }
+
+    parseMarkdownFile(content) {
+        const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+        if (!frontmatterMatch) return null;
+
+        const frontmatter = frontmatterMatch[1];
+        const markdown = frontmatterMatch[2];
+
+        const metadata = {};
+        frontmatter.split('\n').forEach(line => {
+            const match = line.match(/^(\w+):\s*"?([^"]*)"?$/);
+            if (match) {
+                metadata[match[1]] = match[2];
+            }
+        });
+
+        return { ...metadata, markdown };
     }
 
     async list(limit = 50) {
@@ -126,17 +164,26 @@ class StorageManager {
             return stmt.all(limit);
         }
 
-        const dataDir = path.dirname(this.dbPath);
-        if (!fs.existsSync(dataDir)) return [];
+        if (!fs.existsSync(this.dataDir)) return [];
 
-        const files = fs.readdirSync(dataDir).filter(f => f.endsWith('.json'));
-        return files.slice(0, limit).map(file => {
-            const content = JSON.parse(fs.readFileSync(path.join(dataDir, file), 'utf8'));
+        const files = fs.readdirSync(this.dataDir)
+            .filter(f => f.endsWith('.md'))
+            .map(file => {
+                const stat = fs.statSync(path.join(this.dataDir, file));
+                return { file, mtime: stat.mtime };
+            })
+            .sort((a, b) => b.mtime - a.mtime)
+            .slice(0, limit);
+
+        return files.map(({ file }) => {
+            const content = fs.readFileSync(path.join(this.dataDir, file), 'utf8');
+            const parsed = this.parseMarkdownFile(content);
             return {
-                url: content.url,
-                url_hash: content.urlHash,
-                title: content.title,
-                created_at: content.savedAt
+                url: parsed?.url || 'unknown',
+                url_hash: parsed?.url_hash || 'unknown',
+                title: parsed?.title || file,
+                file: file,
+                created_at: parsed?.saved_at || new Date().toISOString()
             };
         });
     }

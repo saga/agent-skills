@@ -177,9 +177,9 @@ If no existing Chrome is found, the script will automatically launch a new headl
   - Code blocks (inline and fenced)
   - Blockquotes
   - Tables
-- **HTML entity decoding**: Converts &amp;, &lt etc.
-- **;, &gt;,Smart whitespace handling**:lines
-- ** Cleans up excessive newRedirect following**: Automatically follows HTTP redirects
+- **HTML entity decoding**: Converts &amp;, &lt;, &gt;, etc.
+- **Smart whitespace handling**: Cleans up excessive newlines
+- **Redirect following**: Automatically follows HTTP redirects
 
 ## Output
 
@@ -187,6 +187,54 @@ The script generates a `.md` file with:
 - Page title as H1 header (if not already present)
 - Clean Markdown formatting
 - Preserved structure (headers, lists, tables, etc.)
+
+## Storage
+
+All fetched content is automatically saved to the `data/` directory:
+
+### Primary Storage: Markdown Files
+
+Each URL is saved as a Markdown file with YAML frontmatter:
+
+```markdown
+---
+url: "https://example.com/article"
+url_hash: "a1b2c3d4e5f6"
+title: "Article Title"
+html_length: 12345
+saved_at: "2024-01-15T10:30:00Z"
+---
+
+# Article Title
+
+...content...
+```
+
+### File Naming
+
+Files are named based on the URL structure:
+- `www_example_com_article.md`
+- `docs_github_com_readme.md`
+
+### Optional: SQLite Database Index
+
+If `better-sqlite3` is installed, content is also indexed in a SQLite database for faster lookups:
+
+```bash
+npm install better-sqlite3
+```
+
+### Storage Location
+
+```
+skills/web-to-markdown/
+├── SKILL.md
+├── web-to-markdown.mjs
+├── data/
+│   ├── www_example_com_article.md
+│   ├── docs_github_com_readme.md
+│   └── web_content.db          # Optional SQLite index
+```
 
 ## Error Handling
 
