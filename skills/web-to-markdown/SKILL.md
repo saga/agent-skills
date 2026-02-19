@@ -13,11 +13,53 @@ This skill fetches web content from a URL and converts it to clean, well-formatt
 - User needs to convert HTML content to Markdown format
 - User asks to save an article or blog post as Markdown
 - User wants to archive web content in Markdown format
-- **User wants to access pages requiring authentication** (use Chrome mode)
+- **User wants to access pages requiring authentication** (use Chrome/MCP mode)
 
 ## Usage
 
-### Command Line
+### For AI Assistant with MCP Access
+
+When using this skill via an AI assistant that has MCP access (like Claude Code, Cursor, Cline), the AI should:
+
+**Step 1: Check MCP servers**
+```javascript
+// Call list_mcp_servers to check if chrome-devtools is available
+```
+
+**Step 2: Auto-install if missing**
+```javascript
+// If mcp-chrome-devtools not found, call add_mcp_server:
+{
+  "name": "chrome-devtools",
+  "command": "npx",
+  "args": ["-y", "chrome-devtools-mcp@latest"],
+  "transport": "stdio"
+}
+```
+
+**Step 3: Fetch page via MCP**
+```javascript
+// Call call_mcp_tool to navigate:
+{
+  "server": "chrome-devtools",
+  "tool": "navigate",
+  "arguments": { "url": "<URL>" }
+}
+
+// Wait for page load
+
+// Get HTML:
+{
+  "server": "chrome-devtools",
+  "tool": "get_html"
+}
+```
+
+**Step 4: Convert to Markdown**
+- Use this skill's `htmlToMarkdown()` function to convert the fetched HTML
+- Or pass the HTML to the conversion functions
+
+### Command Line (Standalone)
 
 ```bash
 node web-to-markdown.mjs <URL> [output-file] [options]
@@ -53,9 +95,45 @@ node web-to-markdown.mjs https://example.com/private-page --chrome
 node web-to-markdown.mjs https://example.com -c 9222
 ```
 
-## Chrome/Puppeteer Mode
+## MCP Chrome DevTools Workflow
 
-For pages that require authentication, cookies, sessions, or contain JavaScript-rendered content, use the `--chrome` or `-c` flag.
+This skill integrates with **chrome-devtools-mcp** for fetching authenticated pages.
+
+### MCP Tools Used
+
+| Tool | Description |
+|------|-------------|
+| `list_mcp_servers` | Check if chrome-devtools MCP is available |
+| `add_mcp_server` | Add chrome-devtools MCP if missing |
+| `navigate` | Navigate Chrome to URL |
+| `get_html` | Get page HTML content |
+| `get_content` | Alternative to get HTML |
+| `take_screenshot` | Optional: Take page screenshot |
+
+### Workflow for AI Assistant
+
+1. **Check**: Call `list_mcp_servers` to verify chrome-devtools is configured
+2. **Install**: If missing, call `add_mcp_server` with chrome-devtools config
+3. **Navigate**: Call `call_mcp_tool` with `navigate` tool
+4. **Fetch**: Call `call_mcp_tool` with `get_html` tool
+5. **Convert**: Use the HTML content and convert to Markdown
+
+### Example MCP Config (if needed)
+
+```json
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"]
+    }
+  }
+}
+```
+
+## Chrome/Puppeteer Mode (Standalone)
+
+For CLI usage without MCP, use `--chrome` flag to control Chrome directly via Puppeteer.
 
 This mode uses [Puppeteer](https://pptr.dev/) (the same engine used by chrome-devtools-mcp) to control a Chrome browser.
 
@@ -80,20 +158,13 @@ Then use:
 node web-to-markdown.mjs https://example.com --chrome
 ```
 
-### Using with chrome-devtools-mcp
-
-If you're using [chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp), it already starts Chrome with remote debugging. Just use the same port:
-
-```bash
-node web-to-markdown.mjs https://example.com --chrome
-```
-
 ### Auto-Launch Mode
 
 If no existing Chrome is found, the script will automatically launch a new headless Chrome browser.
 
 ## Features
 
+- **MCP Integration**: Works with AI assistants via chrome-devtools-mcp
 - **Zero dependencies** (default mode): Built-in HTML to Markdown converter
 - **Chrome/Puppeteer mode**: Uses Puppeteer for authenticated pages or JS-rendered content
 - **Automatic content extraction**: Detects main content areas (article, main, content divs)
@@ -106,9 +177,9 @@ If no existing Chrome is found, the script will automatically launch a new headl
   - Code blocks (inline and fenced)
   - Blockquotes
   - Tables
-- **HTML entity decoding**: Converts &amp;, &lt;, &gt;, etc.
-- **Smart whitespace handling**: Cleans up excessive newlines
-- **Redirect following**: Automatically follows HTTP redirects
+- **HTML entity decoding**: Converts &amp;, &lt etc.
+- **;, &gt;,Smart whitespace handling**:lines
+- ** Cleans up excessive newRedirect following**: Automatically follows HTTP redirects
 
 ## Output
 

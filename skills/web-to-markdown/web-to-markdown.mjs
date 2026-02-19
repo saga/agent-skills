@@ -121,6 +121,152 @@ class WebToMarkdown {
     }
 
     /**
+     * Check if MCP server is available (for AI assistant with MCP access)
+     * This is meant to be called via MCP tools by an AI assistant
+     * 
+     * @param {string} serverName - The MCP server name to check
+     * @returns {Promise<{exists: boolean, server?: object}>}
+     */
+    async checkMcpServer(serverName = 'chrome-devtools') {
+        console.log(`Checking MCP server: ${serverName}`);
+        
+        const findProjectRoot = (startPath) => {
+            let currentPath = startPath;
+            while (currentPath) {
+                if (fs.existsSync(path.join(currentPath, 'package.json'))) {
+                    return currentPath;
+                }
+                const parent = path.dirname(currentPath);
+                if (parent === currentPath) break;
+                currentPath = parent;
+            }
+            return startPath;
+        };
+        
+        const projectRoot = findProjectRoot(process.cwd());
+        const mcpConfigPath = path.join(projectRoot, 'mcp.json');
+        
+        if (!fs.existsSync(mcpConfigPath)) {
+            return { exists: false, error: 'mcp.json not found' };
+        }
+
+        try {
+            const mcpConfig = JSON.parse(fs.readFileSync(mcpConfigPath, 'utf8'));
+            const servers = mcpConfig.mcpServers || {};
+            
+            if (servers[serverName]) {
+                return { exists: true, server: servers[serverName] };
+            }
+            
+            return { exists: false, availableServers: Object.keys(servers) };
+        } catch (error) {
+            return { exists: false, error: error.message };
+        }
+    }
+
+    /**
+     * Add MCP server configuration (for AI assistant with MCP access)
+     * This is meant to be called via MCP tools by an AI assistant
+     * 
+     * @param {string} serverName - The MCP server name
+     * @param {object} config - The server configuration
+     * @returns {Promise<{success: boolean, message: string}>}
+     */
+    async addMcpServer(serverName = 'chrome-devtools', config = null) {
+        const defaultConfig = {
+            command: 'npx',
+            args: ['-y', 'chrome-devtools-mcp@latest'],
+            transport: 'stdio'
+        };
+
+        const serverConfig = config || defaultConfig;
+        
+        console.log(`Adding MCP server: ${serverName}`);
+        
+        const findProjectRoot = (startPath) => {
+            let currentPath = startPath;
+            while (currentPath) {
+                if (fs.existsSync(path.join(currentPath, 'package.json'))) {
+                    return currentPath;
+                }
+                const parent = path.dirname(currentPath);
+                if (parent === currentPath) break;
+                currentPath = parent;
+            }
+            return startPath;
+        };
+        
+        const projectRoot = findProjectRoot(process.cwd());
+        const mcpConfigPath = path.join(projectRoot, 'mcp.json');
+        let mcpConfig = { mcpServers: {} };
+
+        if (fs.existsSync(mcpConfigPath)) {
+            try {
+                mcpConfig = JSON.parse(fs.readFileSync(mcpConfigPath, 'utf8'));
+            } catch (error) {
+                console.log(`Warning: Could not parse existing mcp.json: ${error.message}`);
+            }
+        }
+
+        mcpConfig.mcpServers = mcpConfig.mcpServers || {};
+        mcpConfig.mcpServers[serverName] = serverConfig;
+
+        try {
+            fs.writeFileSync(mcpConfigPath, JSON.stringify(mcpConfig, null, 2), 'utf8');
+            return { 
+                success: true, 
+                message: `Added ${serverName} to mcp.json. Please restart your AI assistant to load the new MCP server.` 
+            };
+        } catch (error) {
+            return { success: false, message: `Failed to write mcp.json: ${error.message}` };
+        }
+    }
+
+    /**
+     * Fetch page via MCP Chrome DevTools (for AI assistant with MCP access)
+     * This is meant to be called via MCP tools by an AI assistant
+     * 
+     * The AI assistant should call these MCP tools:
+     * 1. call_mcp_tool with { tool: 'navigate', arguments: { url } }
+     * 2. call_mcp_tool with { tool: 'get_html' }
+     * 
+     * @param {string} url - The URL to fetch
+     * @param {Function} mcpCallFn - Function to call MCP tool (provided by AI assistant)
+     * @returns {Promise<{success: boolean, html?: string, error?: string}>}
+     */
+    async fetchViaMcp(url, mcpCallFn = null) {
+        console.log(`Fetching via MCP: ${url}`);
+        
+        if (!mcpCallFn) {
+            return {
+                success: false,
+                error: 'MCP call function not provided. This function should be called by an AI assistant with MCP access.'
+            };
+        }
+
+        try {
+            console.log('Step 1: Navigating to URL via MCP...');
+            const navResult = await mcpCallFn('chrome-devtools', 'navigate', { url });
+            
+            console.log('Step 2: Waiting for page load...');
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            console.log('Step 3: Getting HTML via MCP...');
+            const htmlResult = await mcpCallFn('chrome-devtools', 'get_html');
+            
+            const html = htmlResult?.html || htmlResult?.content || '';
+            
+            if (!html) {
+                return { success: false, error: 'No HTML content returned from MCP' };
+            }
+
+            return { success: true, html };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
      * Extract main content from HTML
      */
     extractMainContent(html) {
@@ -431,7 +577,8 @@ class WebToMarkdown {
 }
 
 // Run if called directly
-const isMainModule = import.meta.url.startsWith('file://') && 
+const isMainModule = typeof process.argv[1] === 'string' && 
+    import.meta.url.startsWith('file://') && 
     (process.argv[1].endsWith('web-to-markdown.mjs') || 
      import.meta.url.includes(process.argv[1].replace(/\\/g, '/')));
 
@@ -441,3 +588,9 @@ if (isMainModule) {
 }
 
 export default WebToMarkdown;
+
+export const mcpHelpers = {
+    checkMcpServer: (serverName) => new WebToMarkdown().checkMcpServer(serverName),
+    addMcpServer: (serverName, config) => new WebToMarkdown().addMcpServer(serverName, config),
+    fetchViaMcp: (url, mcpCallFn) => new WebToMarkdown().fetchViaMcp(url, mcpCallFn)
+};
