@@ -3,10 +3,6 @@
 /**
  * Web to Markdown Converter
  * Fetches web content and converts it to clean Markdown format
- * 
- * Priority:
- * 1. Use turndown package if available (npm install turndown)
- * 2. Fallback to native HTML-to-Markdown converter
  */
 
 import https from 'https';
@@ -18,36 +14,10 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Try to import turndown, fallback to null if not available
-let TurndownService = null;
-try {
-    const turndownModule = await import('turndown');
-    TurndownService = turndownModule.default;
-    console.log('Using turndown package for HTML to Markdown conversion');
-} catch {
-    console.log('turndown package not found, using native converter');
-    console.log('Tip: Run "npm install turndown" for better conversion quality');
-}
-
 class WebToMarkdown {
     constructor() {
         this.url = null;
         this.outputPath = null;
-        this.turndownService = null;
-        
-        // Initialize turndown if available
-        if (TurndownService) {
-            this.turndownService = new TurndownService({
-                headingStyle: 'atx',
-                hr: '---',
-                bulletListMarker: '-',
-                codeBlockStyle: 'fenced',
-                fence: '```',
-                emDelimiter: '*',
-                strongDelimiter: '**',
-                linkStyle: 'inlined'
-            });
-        }
     }
 
     /**
@@ -74,9 +44,6 @@ class WebToMarkdown {
         console.log('Example:');
         console.log('  node web-to-markdown.mjs https://example.com/article');
         console.log('  node web-to-markdown.mjs https://example.com/article ./output.md');
-        console.log('');
-        console.log('Note: Install turndown for better conversion quality:');
-        console.log('  npm install turndown');
     }
 
     /**
@@ -172,26 +139,16 @@ class WebToMarkdown {
     }
 
     /**
-     * Convert HTML to Markdown using turndown if available, otherwise use native converter
+     * Convert HTML to Markdown
      */
     htmlToMarkdown(html) {
-        // Extract title before conversion
         const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
         const h1Match = html.match(/<h1[^>]*>(.*?)<\/h1>/i);
         const title = titleMatch ? this.stripTags(titleMatch[1]) : 
                      (h1Match ? this.stripTags(h1Match[1]) : null);
 
-        let md;
-        
-        if (this.turndownService) {
-            // Use turndown for conversion
-            md = this.turndownService.turndown(html);
-        } else {
-            // Use native converter
-            md = this.nativeHtmlToMarkdown(html);
-        }
+        const md = this.nativeHtmlToMarkdown(html);
 
-        // Add title as header if not already present and title exists
         if (title && !md.startsWith('# ')) {
             md = '# ' + title + '\n\n' + md;
         }
@@ -200,7 +157,7 @@ class WebToMarkdown {
     }
 
     /**
-     * Native HTML to Markdown converter (fallback when turndown is not available)
+     * HTML to Markdown converter
      */
     nativeHtmlToMarkdown(html) {
         let md = html;
