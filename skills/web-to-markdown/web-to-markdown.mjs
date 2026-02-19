@@ -27,6 +27,22 @@ class WebToMarkdown {
     }
 
     /**
+     * Find project root by searching for package.json
+     */
+    findProjectRoot(startPath) {
+        let currentPath = startPath;
+        while (currentPath) {
+            if (fs.existsSync(path.join(currentPath, 'package.json'))) {
+                return currentPath;
+            }
+            const parent = path.dirname(currentPath);
+            if (parent === currentPath) break;
+            currentPath = parent;
+        }
+        return startPath;
+    }
+
+    /**
      * Parse command line arguments
      */
     parseArgs() {
@@ -130,20 +146,7 @@ class WebToMarkdown {
     async checkMcpServer(serverName = 'chrome-devtools') {
         console.log(`Checking MCP server: ${serverName}`);
         
-        const findProjectRoot = (startPath) => {
-            let currentPath = startPath;
-            while (currentPath) {
-                if (fs.existsSync(path.join(currentPath, 'package.json'))) {
-                    return currentPath;
-                }
-                const parent = path.dirname(currentPath);
-                if (parent === currentPath) break;
-                currentPath = parent;
-            }
-            return startPath;
-        };
-        
-        const projectRoot = findProjectRoot(process.cwd());
+        const projectRoot = this.findProjectRoot(process.cwd());
         const mcpConfigPath = path.join(projectRoot, 'mcp.json');
         
         if (!fs.existsSync(mcpConfigPath)) {
@@ -183,20 +186,7 @@ class WebToMarkdown {
         
         console.log(`Adding MCP server: ${serverName}`);
         
-        const findProjectRoot = (startPath) => {
-            let currentPath = startPath;
-            while (currentPath) {
-                if (fs.existsSync(path.join(currentPath, 'package.json'))) {
-                    return currentPath;
-                }
-                const parent = path.dirname(currentPath);
-                if (parent === currentPath) break;
-                currentPath = parent;
-            }
-            return startPath;
-        };
-        
-        const projectRoot = findProjectRoot(process.cwd());
+        const projectRoot = this.findProjectRoot(process.cwd());
         const mcpConfigPath = path.join(projectRoot, 'mcp.json');
         let mcpConfig = { mcpServers: {} };
 

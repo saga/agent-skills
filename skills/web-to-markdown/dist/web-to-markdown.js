@@ -2,13 +2,27 @@
 import d from "https";
 import f from "http";
 import l from "fs";
-import h from "path";
+import p from "path";
 import { fileURLToPath as w } from "url";
 const S = w(import.meta.url);
-h.dirname(S);
-class u {
+p.dirname(S);
+class g {
   constructor() {
     this.url = null, this.outputPath = null, this.useChrome = !1, this.chromePort = 9222;
+  }
+  /**
+   * Find project root by searching for package.json
+   */
+  findProjectRoot(t) {
+    let e = t;
+    for (; e; ) {
+      if (l.existsSync(p.join(e, "package.json")))
+        return e;
+      const o = p.dirname(e);
+      if (o === e) break;
+      e = o;
+    }
+    return t;
   }
   /**
    * Parse command line arguments
@@ -35,21 +49,21 @@ class u {
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
-      }, r = s.get(t, n, (c) => {
-        if (c.statusCode >= 300 && c.statusCode < 400 && c.headers.location) {
-          const i = new URL(c.headers.location, t).toString();
-          console.log(`Redirecting to: ${i}`), this.fetchContent(i).then(e).catch(o);
+      }, c = s.get(t, n, (r) => {
+        if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location) {
+          const a = new URL(r.headers.location, t).toString();
+          console.log(`Redirecting to: ${a}`), this.fetchContent(a).then(e).catch(o);
           return;
         }
-        if (c.statusCode !== 200) {
-          o(new Error(`HTTP ${c.statusCode}: ${c.statusMessage}`));
+        if (r.statusCode !== 200) {
+          o(new Error(`HTTP ${r.statusCode}: ${r.statusMessage}`));
           return;
         }
-        let a = "";
-        c.setEncoding("utf8"), c.on("data", (i) => a += i), c.on("end", () => e(a));
+        let i = "";
+        r.setEncoding("utf8"), r.on("data", (a) => i += a), r.on("end", () => e(i));
       });
-      r.on("error", o), r.setTimeout(3e4, () => {
-        r.destroy(), o(new Error("Request timeout"));
+      c.on("error", o), c.setTimeout(3e4, () => {
+        c.destroy(), o(new Error("Request timeout"));
       });
     });
   }
@@ -62,24 +76,14 @@ class u {
    */
   async checkMcpServer(t = "chrome-devtools") {
     console.log(`Checking MCP server: ${t}`);
-    const o = ((n) => {
-      let r = n;
-      for (; r; ) {
-        if (l.existsSync(h.join(r, "package.json")))
-          return r;
-        const c = h.dirname(r);
-        if (c === r) break;
-        r = c;
-      }
-      return n;
-    })(process.cwd()), s = h.join(o, "mcp.json");
-    if (!l.existsSync(s))
+    const e = this.findProjectRoot(process.cwd()), o = p.join(e, "mcp.json");
+    if (!l.existsSync(o))
       return { exists: !1, error: "mcp.json not found" };
     try {
-      const r = JSON.parse(l.readFileSync(s, "utf8")).mcpServers || {};
-      return r[t] ? { exists: !0, server: r[t] } : { exists: !1, availableServers: Object.keys(r) };
-    } catch (n) {
-      return { exists: !1, error: n.message };
+      const n = JSON.parse(l.readFileSync(o, "utf8")).mcpServers || {};
+      return n[t] ? { exists: !0, server: n[t] } : { exists: !1, availableServers: Object.keys(n) };
+    } catch (s) {
+      return { exists: !1, error: s.message };
     }
   }
   /**
@@ -97,27 +101,17 @@ class u {
       transport: "stdio"
     };
     console.log(`Adding MCP server: ${t}`);
-    const r = ((i) => {
-      let p = i;
-      for (; p; ) {
-        if (l.existsSync(h.join(p, "package.json")))
-          return p;
-        const m = h.dirname(p);
-        if (m === p) break;
-        p = m;
-      }
-      return i;
-    })(process.cwd()), c = h.join(r, "mcp.json");
-    let a = { mcpServers: {} };
+    const n = this.findProjectRoot(process.cwd()), c = p.join(n, "mcp.json");
+    let r = { mcpServers: {} };
     if (l.existsSync(c))
       try {
-        a = JSON.parse(l.readFileSync(c, "utf8"));
+        r = JSON.parse(l.readFileSync(c, "utf8"));
       } catch (i) {
         console.log(`Warning: Could not parse existing mcp.json: ${i.message}`);
       }
-    a.mcpServers = a.mcpServers || {}, a.mcpServers[t] = s;
+    r.mcpServers = r.mcpServers || {}, r.mcpServers[t] = s;
     try {
-      return l.writeFileSync(c, JSON.stringify(a, null, 2), "utf8"), {
+      return l.writeFileSync(c, JSON.stringify(r, null, 2), "utf8"), {
         success: !0,
         message: `Added ${t} to mcp.json. Please restart your AI assistant to load the new MCP server.`
       };
@@ -146,7 +140,7 @@ class u {
     try {
       console.log("Step 1: Navigating to URL via MCP...");
       const o = await e("chrome-devtools", "navigate", { url: t });
-      console.log("Step 2: Waiting for page load..."), await new Promise((r) => setTimeout(r, 3e3)), console.log("Step 3: Getting HTML via MCP...");
+      console.log("Step 2: Waiting for page load..."), await new Promise((c) => setTimeout(c, 3e3)), console.log("Step 3: Getting HTML via MCP...");
       const s = await e("chrome-devtools", "get_html"), n = s?.html || s?.content || "";
       return n ? { success: !0, html: n } : { success: !1, error: "No HTML content returned from MCP" };
     } catch (o) {
@@ -220,28 +214,28 @@ class u {
 `), e = e.replace(/<(strong|b)[^>]*>(.*?)<\/\1>/gi, "**$2**"), e = e.replace(/<(em|i)[^>]*>(.*?)<\/\1>/gi, "*$2*"), e = e.replace(/<code[^>]*>(.*?)<\/code>/gi, "`$1`"), e = e.replace(/<pre[^>]*>\s*<code[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi, "\n\n```\n$1\n```\n\n"), e = e.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, "\n\n```\n$1\n```\n\n"), e = e.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, (o, s) => `
 
 ` + s.split(`
-`).map((c) => {
-      const a = c.trim();
-      return a ? "> " + this.stripTags(a) : "";
-    }).filter((c) => c).join(`
+`).map((r) => {
+      const i = r.trim();
+      return i ? "> " + this.stripTags(i) : "";
+    }).filter((r) => r).join(`
 `) + `
 
 `), e = e.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (o, s) => `
 
-` + (s.match(/<li[^>]*>([\s\S]*?)<\/li>/gi) || []).map((c) => {
-      const a = c.replace(/<li[^>]*>([\s\S]*?)<\/li>/i, "$1");
-      return "- " + this.stripTags(a).trim();
+` + (s.match(/<li[^>]*>([\s\S]*?)<\/li>/gi) || []).map((r) => {
+      const i = r.replace(/<li[^>]*>([\s\S]*?)<\/li>/i, "$1");
+      return "- " + this.stripTags(i).trim();
     }).join(`
 `) + `
 
 `), e = e.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (o, s) => {
       const n = s.match(/<li[^>]*>([\s\S]*?)<\/li>/gi) || [];
-      let r = 1;
+      let c = 1;
       return `
 
-` + n.map((a) => {
-        const i = a.replace(/<li[^>]*>([\s\S]*?)<\/li>/i, "$1");
-        return r++ + ". " + this.stripTags(i).trim();
+` + n.map((i) => {
+        const a = i.replace(/<li[^>]*>([\s\S]*?)<\/li>/i, "$1");
+        return c++ + ". " + this.stripTags(a).trim();
       }).join(`
 `) + `
 
@@ -268,13 +262,13 @@ $1
       let n = `
 
 `;
-      return s.forEach((r, c) => {
-        const i = (r.match(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi) || []).map((p) => {
-          const m = p.replace(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/i, "$1");
-          return this.stripTags(m).trim();
+      return s.forEach((c, r) => {
+        const a = (c.match(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi) || []).map((m) => {
+          const u = m.replace(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/i, "$1");
+          return this.stripTags(u).trim();
         });
-        i.length > 0 && (n += "| " + i.join(" | ") + ` |
-`, c === 0 && (n += "|" + i.map(() => " --- |").join("") + `
+        a.length > 0 && (n += "| " + a.join(" | ") + ` |
+`, r === 0 && (n += "|" + a.map(() => " --- |").join("") + `
 `));
       }), n + `
 `;
@@ -313,7 +307,7 @@ $1
   generateOutputFilename(t) {
     try {
       const o = new URL(t).pathname;
-      return ((h.basename(o) || "article").replace(/\.[^/.]+$/, "") || "article") + ".md";
+      return ((p.basename(o) || "article").replace(/\.[^/.]+$/, "") || "article") + ".md";
     } catch {
       return "article.md";
     }
@@ -344,12 +338,12 @@ $1
       const s = await o.pages(), n = s.length > 0 ? s[0] : await o.newPage();
       console.log(`Navigating to: ${t}`);
       try {
-        await n.goto(t, { waitUntil: "domcontentloaded", timeout: 3e4 }), await new Promise((c) => setTimeout(c, 5e3));
-      } catch (c) {
-        console.log(`Page load warning: ${c.message}`);
+        await n.goto(t, { waitUntil: "domcontentloaded", timeout: 3e4 }), await new Promise((r) => setTimeout(r, 5e3));
+      } catch (r) {
+        console.log(`Page load warning: ${r.message}`);
       }
-      const r = await n.content();
-      return console.log(`Got HTML, length: ${r.length} bytes`), await o.close(), r;
+      const c = await n.content();
+      return console.log(`Got HTML, length: ${c.length} bytes`), await o.close(), c;
     } catch (s) {
       if (o)
         try {
@@ -368,8 +362,8 @@ $1
       console.log("Cleaning HTML...");
       const o = this.cleanHtml(e);
       console.log("Converting to Markdown...");
-      const s = this.htmlToMarkdown(o), n = this.outputPath || this.generateOutputFilename(this.url), r = h.dirname(n);
-      r && r !== "." && l.mkdirSync(r, { recursive: !0 }), l.writeFileSync(n, s, "utf8"), console.log(`
+      const s = this.htmlToMarkdown(o), n = this.outputPath || this.generateOutputFilename(this.url), c = p.dirname(n);
+      c && c !== "." && l.mkdirSync(c, { recursive: !0 }), l.writeFileSync(n, s, "utf8"), console.log(`
 Success! Markdown saved to: ${n}`), console.log(`Output size: ${s.length} characters`);
     } catch (t) {
       console.error(`Error: ${t.message}`), process.exit(1);
@@ -377,13 +371,13 @@ Success! Markdown saved to: ${n}`), console.log(`Output size: ${s.length} charac
   }
 }
 const v = typeof process.argv[1] == "string" && import.meta.url.startsWith("file://") && (process.argv[1].endsWith("web-to-markdown.mjs") || import.meta.url.includes(process.argv[1].replace(/\\/g, "/")));
-v && new u().run();
+v && new g().run();
 const P = {
-  checkMcpServer: (g) => new u().checkMcpServer(g),
-  addMcpServer: (g, t) => new u().addMcpServer(g, t),
-  fetchViaMcp: (g, t) => new u().fetchViaMcp(g, t)
+  checkMcpServer: (h) => new g().checkMcpServer(h),
+  addMcpServer: (h, t) => new g().addMcpServer(h, t),
+  fetchViaMcp: (h, t) => new g().fetchViaMcp(h, t)
 };
 export {
-  u as default,
+  g as default,
   P as mcpHelpers
 };
