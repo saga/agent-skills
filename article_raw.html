@@ -1,0 +1,522 @@
+﻿<html lang=en><head>
+    <meta charset=utf-8>
+    <meta name=viewport content="width=device-width, initial-scale=1.0">
+    <meta http-equiv=X-UA-Compatible content="ie=edge">
+    <title>Beyond Pros and Cons: A Multi-Dimensional Trade-Off Analysis Framework for Software Architects | by Tanmay Deshpande | in ITNEXT - Freedium</title>
+    
+    <meta name=description content="A 5-step process for turning architecture debates into scored, defensible recommendations — with...">
+    <meta name=keywords content="medium, paywall, medium.com, paywall breakthrough">
+
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+    <!--<script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>-->
+
+    <script src="/tailwindcssv3-freedium-hotfix.js"></script>
+
+    <link href="https://glyph.medium.com/css/unbound.css" rel=stylesheet>
+    <link rel=apple-touch-icon sizes=180x180 href="/apple-touch-icon.png">
+    <link rel=icon type="image/png" sizes=32x32 href="/favicon-32x32.png">
+    <link rel=icon type="image/png" sizes=16x16 href="/favicon-16x16.png">
+    <link rel=manifest href="/site.webmanifest">
+    <link rel=mask-icon href="/safari-pinned-tab.svg" color=#00aba9>
+    <meta name=msapplication-TileColor content=#00aba9>
+    <meta name=theme-color content=#ffffff>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link rel=stylesheet href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload@17.8.4/dist/lazyload.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/lightense-images@1.0.17/dist/lightense.min.js"></script>
+
+    <script>
+        window._resizeIframe = function (obj) {
+            const logMessage = `Received _resizeIframe call: iframe=${obj.iframe ? obj.iframe.id : 'unknown'}, height=${obj.height}`;
+            if (obj.iframe) {
+                obj.iframe.height = obj.height;
+            }
+            console.log(obj.iframe)
+            console.log(logMessage);
+        };
+    </script>
+
+    <script>
+        window.addEventListener('message', function (event) {
+            console.log('Event data:', JSON.stringify(event.data))
+            if (typeof event.data === 'string') {
+                let parsedData = JSON.parse(event.data);
+                console.log('Event data type:', typeof parsedData)
+                if (parsedData && parsedData.method === 'iframe.resize' && parsedData.context === 'iframe.resize') {
+                    console.log('Resizing iframe - Source:', parsedData.src, 'Height:', parsedData.height, 'Method:', parsedData.method)
+                    const iframes = document.querySelectorAll('iframe');
+                    for (let iframe of iframes) {
+                        if (iframe.src === parsedData.src) {
+                            console.log('Setting iframe height to:', parsedData.height)
+                            console.log(iframe)
+                            iframe.height = parsedData.height;
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+
+    <style>
+        .responsive-object {
+            position: relative;
+            height: 0;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .responsive-object iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-800"><div class="fixed bottom-4 left-4 hidden" style="z-index: 999999;">
+    <button id=openProblemModal class="m-1.5 flex items-center bg-red-500 text-white py-2 px-4 rounded-full shadow-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <svg xmlns="http://www.w3.org/2000/svg" height=1em viewBox="0 0 512 512">
+            <!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. -->
+            <style>
+                svg {
+                    fill: #ffffff
+                }
+            </style>
+            <path d="M256 32c14.2 0 27.3 7.5 34.5 19.8l216 368c7.3 12.4 7.3 27.7 .2 40.1S486.3 480 472 480H40c-14.3 0-27.6-7.7-34.7-20.1s-7-27.8 .2-40.1l216-368C228.7 39.5 241.8 32 256 32zm0 128c-13.3 0-24 10.7-24 24V296c0 13.3 10.7 24 24 24s24-10.7 24-24V184c0-13.3-10.7-24-24-24zm32 224a32 32 0 1 0 -64 0 32 32 0 1 0 64 0z"></path>
+        </svg>
+    </button>
+    <button id=darkModeToggle class="m-1.5 flex items-center bg-blue-500 text-white py-2 px-4 rounded-full shadow-lg hover:bg-blue-600 focus:outline-none">
+        <svg id=darkIcon xmlns="http://www.w3.org/2000/svg" height=1em viewBox="0 0 384 512">
+            <!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. -->
+            <path d="M223.5 32C100 32 0 132.3 0 256S100 480 223.5 480c60.6 0 115.5-24.2 155.8-63.4c5-4.9 6.3-12.5 3.1-18.7s-10.1-9.7-17-8.5c-9.8 1.7-19.8 2.6-30.1 2.6c-96.9 0-175.5-78.8-175.5-176c0-65.8 36-123.1 89.3-153.3c6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-6.3-.5-12.6-.8-19-.8z"></path>
+        </svg>
+        <!-- SVG icon for light mode (e.g., a sun) -->
+        <svg class=hidden id=lightIcon xmlns="http://www.w3.org/2000/svg" height=1em viewBox="0 0 512 512">
+            <!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. -->
+            <path d="M361.5 1.2c5 2.1 8.6 6.6 9.6 11.9L391 121l107.9 19.8c5.3 1 9.8 4.6 11.9 9.6s1.5 10.7-1.6 15.2L446.9 256l62.3 90.3c3.1 4.5 3.7 10.2 1.6 15.2s-6.6 8.6-11.9 9.6L391 391 371.1 498.9c-1 5.3-4.6 9.8-9.6 11.9s-10.7 1.5-15.2-1.6L256 446.9l-90.3 62.3c-4.5 3.1-10.2 3.7-15.2 1.6s-8.6-6.6-9.6-11.9L121 391 13.1 371.1c-5.3-1-9.8-4.6-11.9-9.6s-1.5-10.7 1.6-15.2L65.1 256 2.8 165.7c-3.1-4.5-3.7-10.2-1.6-15.2s6.6-8.6 11.9-9.6L121 121 140.9 13.1c1-5.3 4.6-9.8 9.6-11.9s10.7-1.5 15.2 1.6L256 65.1 346.3 2.8c4.5-3.1 10.2-3.7 15.2-1.6zM160 256a96 96 0 1 1 192 0 96 96 0 1 1 -192 0zm224 0a128 128 0 1 0 -256 0 128 128 0 1 0 256 0z"></path>
+        </svg>
+    </button>
+</div>
+
+
+<div class="storage-notification-container fixed top-5 right-5 p-2 max-h-[95vh] overflow-y-auto hidden" style="z-index: 999999;">
+    <div class="p-4 text-center bg-white border border-gray-300 rounded-md shadow-sm dark:bg-gray-800">
+        <p class="pb-2 text-xl text-black dark:text-white font-semibold">Milestone: 20GB Reached</p>
+        <p class="pb-3 text-black dark:text-white">
+            We’ve reached 20GB of stored data — thank you for helping us grow!
+        </p>
+        <div class="mt-4 space-x-2">
+            <a href="https://patreon.com/Freedium" rel=noreferrer target=_blank title=Patreon>
+                <button class="px-3 py-2 font-semibold text-white bg-red-500 rounded hover:bg-red-600 transition-colors">
+                    Patreon
+                </button>
+            </a>
+            <a href="https://ko-fi.com/zhymabekroman" rel=noreferrer target=_blank title=Ko-fi>
+                <button class="px-3 py-2 font-semibold text-white bg-blue-500 rounded hover:bg-blue-600 transition-colors">
+                    Ko-fi
+                </button>
+            </a>
+            <a href="https://liberapay.com/ZhymabekRoman/" rel=noreferrer target=_blank title=Liberapay>
+                <button class="px-3 py-2 font-semibold text-white bg-yellow-500 rounded hover:bg-yellow-600 transition-colors">
+                    Liberapay
+                </button>
+            </a>
+        </div>
+        <div class=mt-3>
+            <button class="px-4 py-2 font-semibold text-white bg-gray-600 rounded hover:bg-gray-700 transition-colors storage-close-button">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<nav id=header class="fixed top-0 w-full bg-white shadow z-9 dark:bg-gray-800 dark:text-white" style="z-index: 999990;">
+    
+    <div id=progress class="top-0 z-20 h-1" style="background:linear-gradient(to right, #4dc0b5 var(--scroll), transparent 0)"></div>
+    <div class="flex flex-wrap items-center justify-between w-full py-3 mx-auto mt-0 md:max-w-4xl">
+        <div class=pl-4>
+            <a class="text-base text-xl font-extrabold text-green-500 no-underline hover:no-underline" href="/" onclick=navigateToOrigin()>Freedium</a>
+        </div>
+        <div class="block pr-4 lg:hidden">
+            <button id=nav-toggle class="flex items-center px-3 py-2 text-gray-500 border border-gray-600 rounded appearance-none dark:text-white hover:text-gray-900 dark:hover:text-white hover:border-green-500 focus:outline-none">
+                <svg class="w-3 h-3 fill-current" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <title>Menu</title>
+                    <path d="M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0v-2z"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="flex-grow hidden w-full mt-2 bg-white lg:flex lg:items-center lg:w-auto lg:block lg:mt-0 dark:bg-gray-800" id=nav-content>
+            <ul class="items-center justify-end flex-1 list-reset lg:flex">
+                <li class=mr-3>
+                    <a class="inline-block text-gray-600 no-underline dark:text-white hover:text-gray-900 dark:hover:text-white hover:text-underline" href="https://ko-fi.com/zhymabekroman" target=_blank>ko-fi</a>
+                </li>
+                <!-- <li class="mr-3">
+                    <a class="inline-block text-gray-600 no-underline dark:text-white hover:text-gray-900 dark:hover:text-white hover:text-underline"
+                        href="https://codeberg.org/Freedium-cfd/web" target="_blank">source code</a>
+                </li>
+                <li class="mr-3">
+                    <a class="inline-block text-gray-600 no-underline dark:text-white hover:text-gray-900 dark:hover:text-white hover:text-underline"
+                        href="https://romans-status-page.vercel.app/status/freedium" target="_blank">status page</a>
+                </li> -->
+                <li class=mr-3>
+                    <a class="inline-block text-gray-600 no-underline dark:text-white hover:text-gray-900 dark:hover:text-white hover:text-underline" href="https://liberapay.com/ZhymabekRoman/" target=_blank rel=noreferrer>librepay</a>
+                </li>
+                <li class=mr-3>
+                    <a class="inline-block text-gray-600 no-underline dark:text-white hover:text-gray-900 dark:hover:text-white hover:text-underline" href="https://patreon.com/Freedium" target=_blank rel=noreferrer>patreon</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container w-full pt-20 mx-auto text-gray-900 break-words bg-white md:max-w-3xl dark:text-gray-200 dark:bg-gray-800">
+    <div class="w-full px-4 text-xl leading-normal text-gray-800 md:px-6 dark:text-gray-100" style=font-family:Georgia,serif;>
+        
+        <div class=font-sans>
+            <p class="pb-3 text-base font-bold text-green-500 md:text-sm">
+                <a href="https://itnext.io/beyond-pros-and-cons-a-multi-dimensional-trade-off-analysis-framework-for-software-architects-f61cd81e5cdf#bypass" class="text-sm font-bold text-green-500 no-underline md:text-sm hover:underline ">&lt; Go to the original</a>
+            </p>
+            
+                <img alt="Preview image" style="max-height: 65vh;
+                            width: auto;
+                            margin: auto" loading=eager referrerpolicy=no-referrer role=presentation src="https://miro.medium.com/v2/resize:fit:700/0*9SvZG6405i0neTCg">
+            
+            <h1 class="pt-6 pb-2 font-sans text-3xl font-bold text-gray-900 break-normal dark:text-gray-100 md:text-4xl">Beyond Pros and Cons: A Multi-Dimensional Trade-Off Analysis Framework for Software Architects</h1>
+            <h2 class="pt-1 font-sans font-medium text-gray-600 break-normal dark:text-gray-200 text-1xl md:text-1xl">A 5-step process for turning architecture debates into scored, defensible recommendations — with a worked example</h2>
+        </div>
+        <div class="m-2 mt-5 bg-gray-100 border border-gray-300 dark:bg-gray-600">
+            <div class="flex items-center p-4 space-x-4">
+                <div class=flex-shrink-0>
+                    <a href="https://medium.com/@deshpandetanmay" target=_blank title="Book author (7 titles) - Weekly deep dive articles on things that matter" class="relative block">
+                        <img src="https://miro.medium.com/v2/resize:fill:88:88/1*Wg1W3na7IOxLU-ynpL38CA.png" alt="Tanmay Deshpande" loading=eager referrerpolicy=no-referrer class="rounded-full h-11 w-11 no-lightense">
+                        <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                    </a>
+                </div>
+                <div class=flex-grow>
+                    <a href="https://medium.com/@deshpandetanmay" target=_blank title="Book author (7 titles) - Weekly deep dive articles on things that matter" class="block font-semibold text-gray-900 dark:text-white">Tanmay Deshpande</a>
+                    <button class="px-3 py-1 mt-1 text-sm text-white bg-green-500 rounded-lg dark:bg-green-700">
+                        <a href="https://medium.com/@deshpandetanmay" target=_blank title="Book author (7 titles) - Weekly deep dive articles on things that matter" class="block text-sm text-white">Follow</a>
+                    </button>
+                </div>
+            </div>
+            <div class="px-4 pb-2">
+                <div class="flex flex-wrap items-center space-x-2 text-sm text-gray-500 dark:text-white">
+                    
+                        <a href="https://medium.com/itnext" title="ITNEXT is a platform for IT developers &amp; software engineers…" target=_blank class="flex items-center space-x-1">
+                            <img loading=eager referrerpolicy=no-referrer src="https://miro.medium.com/v2/resize:fill:48:48/1*yAqDFIFA5F_NXalOJKz4TA.png" alt=ITNEXT class="w-4 h-4 rounded-full no-lightense">
+                            <p>ITNEXT</p>
+                        </a>
+                        <span>·</span>
+                    
+                    <span class="text-gray-500 dark:text-white">~9 min read</span>
+                    <span class=md:inline>·</span>
+                    <span class="text-gray-500 dark:text-white">February 18, 2026 (Updated: February 18, 2026)</span>
+                    <span class=md:inline>·</span>
+                    <span class="text-yellow-500 dark:text-yellow-400">Free: No</span>
+                </div>
+            </div>
+        </div>
+        <div class="mt-8 main-content">
+            <p class="leading-8 mt-7">By the end of this article, you'll have a repeatable framework you can run in your next architecture meeting — one that replaces gut-feel arguments with a scored, multi-dimensional analysis in about an hour.<p class="leading-8 mt-7">The framework has five steps:<ul class="pl-8 mt-2 list-disc"><li class=mt-3>frame the decision<li class=mt-3>build a weighted matrix,<li class=mt-3>surface characteristic tensions<li class=mt-3>apply a reframe that ends debates,<li class=mt-3>and produce a risk-assessed recommendation.</ul><p class="leading-8 mt-7">Most architecture discussions follow a predictable script. Someone proposes Kafka.<p class="leading-8 mt-7">Someone else says "that's overkill."<p class="leading-8 mt-7">A third person draws boxes on a whiteboard. Everyone argues from intuition dressed up as experience. The loudest voice or the most senior title wins.<p class="leading-8 mt-7">Six months later, the team lives with consequences nobody fully thought through.<p class="leading-8 mt-7">The problem isn't that engineers lack technical knowledge. It's that they evaluate technology on one dimension — usually performance or scalability — while ignoring five others that matter just as much.<blockquote class="ml-5 text-2xl text-gray-600 mt-7 dark:text-gray-300"><p>Everything in software architecture is a trade-off. Not some things. Everything. There is no "best" database, no "right" messaging system, no "correct" architecture style. There are only trade-offs that are more or less appropriate for a specific team, in a specific context, at a specific time.</blockquote><p class="leading-8 mt-7">Here's a framework that makes those trade-offs visible, scorable, and debatable — before you commit to an irreversible decision.<h3 id=9cf0 class="font-bold font-sans break-normal text-gray-900 dark:text-gray-100 text-1xl md:text-2xl pt-12">Step 1: Frame Before You Compare</h3><p class="leading-8 mt-3">Before comparing any technology, answer five questions. Most teams skip this and jump straight to pros-and-cons lists. That's why most teams make decisions they regret.<p class="leading-8 mt-7">Take a straightforward example: a 6-person startup choosing between a monolith and microservices.<p class="leading-8 mt-7"><strong>What are the actual options?</strong> Not "should we use microservices?" — that's one option with nothing to compare against. You need 2–5 genuinely different approaches. If someone proposes a single technology, generate alternatives that aren't strawmen.<p class="leading-8 mt-7"><strong>What's the context?</strong> A 6-person startup has different constraints than a 200-person platform team. Team size, existing skills, timeline pressure, budget, compliance requirements — these are the filters that eliminate options before you score anything.<p class="leading-8 mt-7"><strong>Which architecture characteristics matter?</strong> Not all of them. Pick 5–8. A payment system cares about data integrity, security, and reliability. A content feed cares about scalability and developer experience. The characteristics you choose — and how you weight them — determine the outcome.<p class="leading-8 mt-7"><strong>What's the time horizon?</strong> A 6-month decision favors simplicity and speed. A 5-year decision favors evolvability and maintainability.<p class="leading-8 mt-7"><strong>Is this a one-way door or a two-way door?</strong> Jeff Bezos popularized this distinction. A two-way door (choosing a logging library) gets a 15-minute gut call. A one-way door (choosing your primary datastore) gets the full treatment. Don't waste rigor on reversible decisions, and don't wing it on irreversible ones.<p class="leading-8 mt-7">For our 6-person startup, the framing reveals something important before any scoring happens: with a tiny team, tight budget, and 6-month runway to prove product-market fit, simplicity and cost aren't just "nice to have" — they're existential. That framing alone eliminates microservices for most honest evaluators.<p class="leading-8 mt-7">Now let's apply the remaining four steps to a more complex scenario. A 20-engineer team runs a Django + Postgres monolith for a B2B logistics SaaS. Customers want real-time updates — live dashboards, instant webhooks, activity feeds. The team currently polls every 30 seconds. Competitors offer sub-second updates. Three options are on the table: add Kafka alongside Postgres, go full event sourcing with Kafka as the primary store, or stay on Postgres using Change Data Capture to push updates via WebSockets.<p class="leading-8 mt-7">Here's a snapshot of the decision context before we score anything:<p class="leading-8 mt-7">Decision Factor Reality Team size 20 engineers Relevant expertise Deep Postgres, zero Kafka Delivery window 3 weeks max Current event volume 2M events/day Growth expectation 5x in 12 months Latency SLA ≤ 2 seconds<p class="leading-8 mt-7">This table alone eliminates options that require months of migration or skills the team doesn't have. Context is the filter.<h3 id=d5f5 class="font-bold font-sans break-normal text-gray-900 dark:text-gray-100 text-1xl md:text-2xl pt-12">Step 2: Build the Trade-Off Matrix</h3><p class="leading-8 mt-3">This is the core mechanism. Score each option against each characteristic on a 1–5 scale, with anchored definitions to keep scores honest.<p class="leading-8 mt-7">A score of 1 means "actively harmful for this characteristic" — a known anti-pattern. A 3 means "adequate, nothing to write home about." A 5 means "purpose-built for this dimension." The anchors prevent score inflation and make it possible for the team to disagree productively — you're debating whether something is a 3 or a 4, not arguing vibes.<p class="leading-8 mt-7">Here's the matrix for the logistics team:<div class=mt-7><img loading=eager alt=None class="pt-5 m-auto" role=presentation referrerpolicy=no-referrer src="https://miro.medium.com/v2/resize:fit:700/1*ndAZwAb6rXaZDnoUL48acg.png"></div><h4 id=923f class="font-bold font-sans break-normal text-gray-900 dark:text-gray-100 text-l md:text-xl pt-8">Three Principles That Make Scoring Useful</h4><p class="leading-8 mt-3">Without these, the matrix is just a decorated spreadsheet.<p class="leading-8 mt-7"><strong>Scores are relative, not absolute.</strong> You're not measuring against a Platonic ideal of scalability. You're measuring which option is better for this team, with these skills, at this moment. A monolith scores higher on simplicity for a team of 5 than for a team of 50.<p class="leading-8 mt-7"><strong>Divergence is the signal.</strong> Look at the rows where options score very differently. Simplicity ranges from 1 to 4 across these options. Data integrity ranges from 2 to 5. Those rows are where the real trade-off lives. If all options score 3–4 on a row, that characteristic isn't a differentiator — remove it and focus on what actually separates the options.<p class="leading-8 mt-7"><strong>Weight by context, not in the abstract.</strong> Our logistics team weighted simplicity as "high" because they had a 3-week delivery window and zero Kafka experience. A team with 6 months of runway and Kafka expertise would weight it "medium" or "low." The weights encode your situation, not universal truth.<p class="leading-8 mt-7">Multiply high-weight scores by 3, medium by 2, and sum the columns. The logistics team's result: Postgres CDC scored 78, Kafka Sidecar scored 60, Event Sourcing scored 56. A 30% margin isn't a close call. But the matrix alone doesn't tell the full story.<h3 id=0da8 class="font-bold font-sans break-normal text-gray-900 dark:text-gray-100 text-1xl md:text-2xl pt-12">Step 3: Name the Tensions Nobody Wants to Say Out Loud</h3><p class="leading-8 mt-3">Certain architecture characteristics are in natural conflict. Scalability conflicts with simplicity — scaling requires distribution, which adds complexity. Data integrity conflicts with scalability — strong consistency limits horizontal scaling. Performance conflicts with maintainability — optimized code is harder to change.<blockquote style="box-shadow: inset 3px 0 0 0 rgb(209 207 239 / var(--tw-bg-opacity));" class="px-5 pt-3 pb-3 mt-5"><p class=font-italic>When two conflicting characteristics both rank "high" in your context, the tension <em>is</em> the trade-off. Name it explicitly.</blockquote><p class="leading-8 mt-7">For the logistics team, the central tension was <strong>simplicity vs. evolvability</strong>. Postgres CDC preserves simplicity but produces row-level change events ("column X in table Y changed"), not rich domain events ("shipment 456 was re-routed to warehouse B"). Kafka delivers a proper event backbone for future consumers but at a complexity cost the team can't absorb in 3 weeks.<blockquote class="ml-5 text-2xl text-gray-600 mt-7 dark:text-gray-300"><p>Naming this tension transformed the discussion from "which technology is better?" to "which tension are we more willing to live with right now?"</blockquote><p class="leading-8 mt-7">Then go deeper. For each option, ask: <em>if we choose this, what else changes?</em><p class="leading-8 mt-7">These second-order effects don't appear in the matrix, but they often determine whether a decision succeeds or fails.<p class="leading-8 mt-7">Introducing Kafka to a team with zero experience means every future hire needs Kafka familiarity — shrinking the candidate pool. On-call rotations now include Kafka broker failures with no runbooks. Every feature PR must consider dual-write consistency, adding cognitive load to every developer on every commit.<p class="leading-8 mt-7">Event sourcing is more dramatic still. It changes how 20 developers think about their domain. Debugging shifts from SQL queries to replaying event streams. You effectively need a 2–3 person "event platform" team — 10–15% of your engineering org dedicated to infrastructure plumbing instead of customer features.<p class="leading-8 mt-7">These costs are invisible in a pros-and-cons list. They're visible in a structured analysis.<h3 id=5ba0 class="font-bold font-sans break-normal text-gray-900 dark:text-gray-100 text-1xl md:text-2xl pt-12">Step 4: "What Would Have to Be True?"</h3><p class="leading-8 mt-3">This is the single most powerful tactic in the framework, borrowed from Roger Martin's strategy work.<p class="leading-8 mt-7">Instead of asking "which option is best?" — a question that triggers ego and preference — ask "under what conditions would each option be the clearly right choice?"<p class="leading-8 mt-7">For the logistics team:<p class="leading-8 mt-7"><strong>For Kafka Sidecar to be the right choice</strong>, the team would need 2–3 engineers with Kafka experience, 6+ weeks of runway, a near-term need for a domain event backbone, and budget for $1,500–3,000/month in managed Kafka infrastructure.<p class="leading-8 mt-7"><strong>For Event Sourcing to be the right choice</strong>, this would need to be a greenfield system (not a retrofit), the team would need event sourcing experience, and complete historical replay would need to be a first-class business requirement.<p class="leading-8 mt-7"><strong>For Postgres CDC to be the right choice</strong>, the team's Postgres expertise would need to be their primary technical asset, the delivery window would need to be tight, event volume would need to stay under ~50M events/day, and row-level change capture would need to be sufficient for immediate use cases.<p class="leading-8 mt-7">Now instead of debating preferences, the team assesses reality. Which conditions actually hold? For the logistics team, all five CDC conditions were true. Zero of the Kafka conditions held. The debate was over — not because someone won the argument, but because the diagnostic made the answer obvious.<p class="leading-8 mt-7">This reframe works because it's psychologically safe. Nobody has to admit their preferred option is wrong. They just have to acknowledge which conditions hold in their current reality.<h3 id=c32f class="font-bold font-sans break-normal text-gray-900 dark:text-gray-100 text-1xl md:text-2xl pt-12">Step 5: Risk Profile and the Recommendation</h3><p class="leading-8 mt-3">Score each option across four risk dimensions: technical risk (what could go wrong), organizational risk (does the team have the skills), timeline risk (hidden complexity that surfaces late), and reversibility cost (if this doesn't work in 12 months, what does it cost to change course).<p class="leading-8 mt-7">For the logistics team, Event Sourcing carried extreme organizational and timeline risk — a complete paradigm shift for 20 engineers, realistically 3–6 months of migration, fundamentally incompatible with a 3-week constraint. Kafka Sidecar carried moderate organizational risk (zero Kafka expertise) and medium reversibility cost (once Kafka becomes load-bearing, removing it is a multi-month project). Postgres CDC carried low organizational risk and high reversibility (Debezium is additive infrastructure; remove it without touching application code).<p class="leading-8 mt-7">The recommendation: <strong>Postgres CDC with high confidence.</strong><blockquote style="box-shadow: inset 3px 0 0 0 rgb(209 207 239 / var(--tw-bg-opacity));" class="px-5 pt-3 pb-3 mt-5"><p class=font-italic>Not because it's the "best" technology in the abstract — Event Sourcing scores higher on evolvability and Kafka on scalability. But because every condition required for CDC to be the right choice actually holds for this team, right now.</blockquote><p class="leading-8 mt-7">Every recommendation should include two things most people skip. First, <strong>confidence caveats</strong> — name what would change the recommendation. If event volume hits 50M/day within 6 months, if customers demand historical replay, if the team acquires Kafka expertise through an acquisition — any of these would shift the analysis.<p class="leading-8 mt-7">Second, <strong>fitness functions</strong> — 2–3 metrics to monitor post-decision so you know whether the choice is aging well. For the logistics team: CDC latency at p99, Postgres replication slot lag, and event-to-domain transformation failure rate.<h3 id=92ef class="font-bold font-sans break-normal text-gray-900 dark:text-gray-100 text-1xl md:text-2xl pt-12">"But My Team Won't Sit Through a Scoring Exercise"</h3><p class="leading-8 mt-3">The most common objection. Three responses.<p class="leading-8 mt-7">For two-way doors, they shouldn't.<p class="leading-8 mt-7">A 15-minute gut call is appropriate for reversible decisions.<p class="leading-8 mt-7">The full framework is for one-way doors where the wrong choice costs 6–18 months of engineering effort.<p class="leading-8 mt-7"><strong>On subjectivity</strong>: yes, the scores are subjective. But transparent subjectivity that an entire team can challenge, debate, and improve is categorically better than invisible subjectivity in one architect's head.<p class="leading-8 mt-7"><strong>On time</strong>: the framework takes about an hour. The wrong architecture decision takes 6–18 months to unwind. The math is not complicated.<h3 id=ae98 class="font-bold font-sans break-normal text-gray-900 dark:text-gray-100 text-1xl md:text-2xl pt-12">The Question That Changes Everything</h3><p class="leading-8 mt-3">The framework's deepest value isn't the matrix or the weighted scores. It's forcing the conversations the team was avoiding — the tensions between competing priorities, the second-order effects nobody wanted to quantify, the conditions that must hold for the preferred option to actually work.<p class="leading-8 mt-7">Architecture decisions don't fail because engineers pick the wrong technology. They fail in the gap between what was analyzed and what was assumed.<p class="leading-8 mt-7">The next time someone proposes a technology in a meeting, don't ask "is it good?" Ask: <em>what would have to be true for this to be the right choice for us, right now?</em><p class="leading-8 mt-7">If the room can't answer that question, you're not ready to decide.</p>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-5">
+            <a title=Programming target=_blank href="https://medium.com/tag/programming"><span class="px-2 py-1 text-xs text-green-500 bg-green-100 rounded-full dark:bg-green-800 dark:text-gray-100">#programming</span></a><a title="Software Architecture" target=_blank href="https://medium.com/tag/software-architecture"><span class="px-2 py-1 text-xs text-green-500 bg-green-100 rounded-full dark:bg-green-800 dark:text-gray-100">#software-architecture</span></a><a title=Technology target=_blank href="https://medium.com/tag/technology"><span class="px-2 py-1 text-xs text-green-500 bg-green-100 rounded-full dark:bg-green-800 dark:text-gray-100">#technology</span></a><a title="Software Development" target=_blank href="https://medium.com/tag/software-development"><span class="px-2 py-1 text-xs text-green-500 bg-green-100 rounded-full dark:bg-green-800 dark:text-gray-100">#software-development</span></a><a title="Software Design Patterns" target=_blank href="https://medium.com/tag/software-design-patterns"><span class="px-2 py-1 text-xs text-green-500 bg-green-100 rounded-full dark:bg-green-800 dark:text-gray-100">#software-design-patterns</span></a>
+        </div>
+        <div class="container w-full pt-12 mx-auto md:max-w-3xl"></div>
+    </div>
+    <style>
+.main-content {
+ letter-spacing: -0.06px;
+ font-family: source-serif-pro, Georgia, Cambria, "Times New Roman", Times, serif;
+}
+pre {
+    font-size: 75%;
+    background-color: #e3e2e2;
+}
+p code, ul code, li code {
+    font-size: 75%;
+}
+    </style>
+    <script>
+document.addEventListener('DOMContentLoaded', (event) => {
+  hljs.highlightAll();
+
+  document.querySelectorAll('pre code').forEach((el) => {
+        code = el.textContent;
+        el = el.parentElement;
+        el.innerHTML = '<button class="p-1 bg-gray-300 hljs-copy dark:bg-zinc-800">Copy</button>' + el.innerHTML; // append copy button
+        el.getElementsByClassName('hljs-copy')[0].contentCopy = code;
+         el.getElementsByClassName('hljs-copy')[0].addEventListener("click", function () {
+             this.innerText = 'Copying..';
+             if (!navigator.userAgent.toLowerCase().includes('safari')) {
+                 navigator.clipboard.writeText(this.contentCopy);
+             } else {
+                 prompt("Clipboard (Select: ⌘+a > Copy:⌘+c)", this.contentCopy);
+             }
+             this.innerText = 'Copied!';
+             button = this;
+             setTimeout(function () {
+                 button.innerText = 'Copy';
+             }, 1500)
+         });
+});
+  });
+    </script>
+    <style>
+     .hljs-copy {
+         float: right;
+         cursor: pointer;
+     }
+    </style>
+<div id=problemModal class="fixed inset-0 flex items-center justify-center hidden w-full h-full overflow-y-auto bg-black bg-opacity-50 modal" style="z-index: 999999">
+    <div class="w-11/12 max-h-screen mx-auto rounded shadow-lg modal-container md:max-w-xl">
+        <div class="px-6 py-4 my-8 text-left text-black bg-white modal-content dark:bg-gray-800 dark:text-white">
+            <h1 class="text-3xl font-bold">Reporting a Problem</h1>
+            <div class=mt-3>
+                <p>
+                    Sometimes we have problems displaying some Medium posts.
+                    <br>
+                    <br>
+                </p>
+                <p>If you have a problem that some images aren't loading - try using VPN. Probably you have problem with
+                    access to Medium CDN (or fucking Cloudflare's bot detection algorithms are blocking you).</p>
+            </div>
+            <form action=# method=POST class=mt-4 id=problem-form>
+                <div class=mb-4>
+                    <label for=problem-description class="block mb-2 font-bold text-gray-700 dark:text-white">Problem
+                        Description</label>
+                    <textarea id=problem-description name=problem-description placeholder="Describe your problem here..." class="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline" rows=4 required=""></textarea>
+                </div>
+                <div>
+                    <button type=submit class="px-4 py-2 m-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700 focus:outline-none focus:shadow-outline">Submit</button>
+                    <button type=button class="px-4 py-2 m-2 font-bold text-white bg-gray-500 rounded modal-close hover:bg-gray-700 focus:outline-none focus:shadow-outline">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    tailwind.config = {
+        darkMode: 'class',
+    }
+
+    function changeTheme(themeName) {
+        // Source: https://stackoverflow.com/questions/59257368/how-to-dynamically-change-the-theme-using-highlight-js
+        console.log(`Applying theme: ${themeName}`);
+        const existingLink = document.querySelector('link[href*="highlight.js"]');
+        if (existingLink) {
+            existingLink.remove();
+        }
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = `https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/${themeName}.min.css`;
+        document.head.appendChild(link);
+        document.querySelector("span").textContent = themeName;
+    }
+
+    function navigateToOrigin() {
+        window.location.href = window.location.origin;
+    }
+
+    function updateThemeIcons() {
+        const isDarkMode = localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.getElementById('darkIcon').classList.toggle('hidden', !isDarkMode);
+        document.getElementById('lightIcon').classList.toggle('hidden', isDarkMode);
+    }
+
+    updateThemeIcons();
+
+    document.getElementById('darkModeToggle').addEventListener('click', function () {
+        const isDarkMode = localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (isDarkMode) {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.style.cssText = "--lightense-backdrop: white;";
+            localStorage.setItem("theme", "light");
+            changeTheme("a11y-light");
+        } else {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.cssText = "--lightense-backdrop: black;";
+            localStorage.setItem("theme", "dark");
+            changeTheme("androidstudio");
+        }
+        updateThemeIcons();
+    })
+
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        //document.getElementById('darkIcon').classList.remove('hidden');
+        //document.getElementById('lightIcon').classList.add('hidden')
+        changeTheme("androidstudio");
+    } else {
+        document.documentElement.classList.remove('dark')
+        //document.getElementById('lightIcon').classList.remove('hidden');
+        //document.getElementById('darkIcon').classList.add('hidden');
+        changeTheme("a11y-light");
+    }
+</script>
+<script>
+    const openModalButton = document.getElementById('openProblemModal');
+    const closeModalButton = document.querySelector('.modal-close');
+    const modal = document.getElementById('problemModal');
+    const problemDescriptionInput = document.getElementById('problem-description');
+    const submitButton = document.querySelector('form button');
+    const body = document.querySelector('body');
+
+    openModalButton.addEventListener('click', () => {
+        body.classList.add('!overflow-hidden'); // Prevent scrolling on the body
+        modal.classList.remove('hidden');
+    });
+
+    closeModalButton.addEventListener('click', () => {
+        body.classList.remove('!overflow-hidden'); // Re-enable scrolling on the body
+        modal.classList.add('hidden');
+    });
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.add('hidden');
+            body.classList.remove('!overflow-hidden');
+        }
+    });
+
+    function navigateNoCache() {
+        window.location.href = `/render-no-cache${window.location.pathname}`;
+    }
+
+    const submitForm = async (event) => {
+        event.preventDefault();
+
+        console.log('Form submiting is started!');
+        submitButton.disabled = true;
+
+        // Get the problem description from the input field
+        const problemDescription = problemDescriptionInput.value;
+        const currentPage = window.location.href;
+
+        try {
+            // Send a POST request to the "report-problem" API endpoint
+            const response = await fetch('/report-problem', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ description: problemDescription, page: currentPage }),
+            });
+
+            if (response.ok) {
+                // Report submitted successfully, you can add a success message or further actions here
+                console.log('Problem report submitted successfully.');
+                modal.classList.add('hidden'); // Close the modal
+            } else {
+                // Handle errors, such as non-200 responses
+                console.error('Failed to submit problem report.');
+                submitButton.disabled = false;
+            }
+        } catch (error) {
+            // Handle network errors or other exceptions
+            console.error('An error occurred:', error);
+            submitButton.disabled = false;
+        }
+    };
+
+    document.getElementById('problem-form').onsubmit = submitForm;
+</script>
+<script>
+    const h = document.documentElement, b = document.body;
+    const st = 'scrollTop';
+    const sh = 'scrollHeight';
+    const progress = document.getElementById('progress');
+    const header = document.getElementById('header');
+    const navcontent = document.getElementById('nav-content');
+
+    document.addEventListener('scroll', function () {
+        /* Refresh scroll % width */
+        const scroll = (h[st] || b[st]) / ((h[sh] || b[sh]) - h.clientHeight) * 100;
+        progress.style.setProperty('--scroll', scroll + '%');
+
+        /* Apply classes for slide in bar */
+        const shouldAddClass = window.scrollY > 10;
+    });
+
+    document.getElementById('nav-toggle').onclick = function () {
+        document.getElementById("nav-content").classList.toggle("hidden");
+    }
+
+    window.addEventListener('load', function () {
+        Lightense('img:not(.no-lightense)');
+    }, false);
+</script>
+<!-- <script>
+    var lazyLoadInstance = new LazyLoad({
+        callback_loaded: function (element) {
+            console.log(element);
+            console.log(element.tagName);
+            switch (element.tagName) {
+                case "IMG":
+                    console.log(`${element} is image, wrapping into lightense`);
+                    Lightense(element);
+                    break;
+                case "IFRAME":
+                    const resizeIframe = () => {
+                        console.log(`${element} is iframe, wrapping script`);
+                        let iframeHeight = element.contentWindow.document.body.scrollHeight;
+                        if (iframeHeight == 150) {
+                            iframeHeight = 500;
+                        }
+                        element.style.height = iframeHeight + 'px';
+                    };
+                    window.addEventListener('resize', resizeIframe);
+                    setInterval(resizeIframe, 4500);
+                    resizeIframe();
+                    break;
+            }
+        },
+        callback_error: (element) => {
+            console.log(element);
+            if (element.tagName === "IMG" && element.hasAttribute("data-src")) {
+                const srcAttribute = element.attributes["data-src"].value;
+                if (srcAttribute.startsWith("https://miro.medium.com/v2/")) {
+                    element.setAttribute("src", srcAttribute.replace("https://miro.medium.com/v2/", "https://freedium-mirror.cfd/@miro/v2/"));
+                }
+            }
+        }
+    });
+</script> -->
+<script>
+    function navigateToOrigin() {
+        window.location.href = window.location.origin;
+    }
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // Storage notification
+        const storageNotificationContainer = document.querySelector('.storage-notification-container');
+        const storageCloseButton = storageNotificationContainer ? storageNotificationContainer.querySelector('.storage-close-button') : null;
+        const storageFlagString = "showNotification-storage-20gb-2025";
+
+        function showStorageNotification() {
+            if (storageNotificationContainer && !localStorage.getItem(storageFlagString)) {
+                storageNotificationContainer.style.display = 'block';
+            }
+        }
+
+        function hideStorageNotification() {
+            if (!storageNotificationContainer) return;
+            localStorage.setItem(storageFlagString, 'false');
+            storageNotificationContainer.style.display = 'none';
+        }
+
+        if (storageCloseButton) {
+            storageCloseButton.addEventListener('click', hideStorageNotification);
+        }
+
+        // Show the storage notification by default
+        showStorageNotification();
+    });
+</script>
+
+
+</div>
