@@ -1,0 +1,66 @@
+{
+  "name": "Investor",
+  "domain": "mutual-fund",
+  "version": "1.0.0",
+  "entityType": "Core",
+  "description": "投资者，购买和持有基金的实体",
+  "attributes": [
+    {
+      "name": "investorId",
+      "type": "String",
+      "description": "投资者唯一标识符",
+      "isIdentifier": true,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "name",
+      "type": "String",
+      "description": "投资者姓名",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "type",
+      "type": "String",
+      "description": "投资者类型（个人/机构）",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "riskProfile",
+      "type": "String",
+      "description": "风险承受能力",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    }
+  ],
+  "relationships": [
+    {
+      "target": "Investment",
+      "type": "1:N",
+      "description": "投资者持有多个投资",
+      "semantics": "ownership",
+      "sources": ["fidelity-doc-001"]
+    },
+    {
+      "target": "Transaction",
+      "type": "1:N",
+      "description": "投资者执行多个交易",
+      "semantics": "ownership",
+      "sources": ["fidelity-doc-001"]
+    }
+  ],
+  "businessRules": [],
+  "sources": ["fidelity-doc-001"],
+  "createdAt": "2024-01-15T10:00:00Z",
+  "updatedAt": "2024-01-15T10:00:00Z",
+  "mergeHistory": []
+}

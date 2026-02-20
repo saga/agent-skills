@@ -1,0 +1,65 @@
+{
+  "name": "Prospectus",
+  "domain": "mutual-fund",
+  "version": "1.0.0",
+  "entityType": "Supporting",
+  "description": "基金招募说明书",
+  "attributes": [
+    {
+      "name": "prospectusId",
+      "type": "String",
+      "description": "说明书唯一标识符",
+      "isIdentifier": true,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "version",
+      "type": "String",
+      "description": "版本号",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "publishDate",
+      "type": "Date",
+      "description": "发布日期",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "isSummary",
+      "type": "Boolean",
+      "description": "是否为摘要版",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    }
+  ],
+  "relationships": [
+    {
+      "target": "MutualFund",
+      "type": "1:1",
+      "description": "说明书属于某个基金",
+      "semantics": "dependency",
+      "sources": ["fidelity-doc-001"]
+    }
+  ],
+  "businessRules": [
+    {
+      "ruleId": "BR002",
+      "description": "必须向投资者提供招募说明书或摘要招募说明书",
+      "sources": ["fidelity-doc-001"]
+    }
+  ],
+  "sources": ["fidelity-doc-001"],
+  "createdAt": "2024-01-15T10:00:00Z",
+  "updatedAt": "2024-01-15T10:00:00Z",
+  "mergeHistory": []
+}

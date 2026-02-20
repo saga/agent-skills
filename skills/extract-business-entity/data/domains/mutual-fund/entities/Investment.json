@@ -1,0 +1,81 @@
+{
+  "name": "Investment",
+  "domain": "mutual-fund",
+  "version": "1.0.0",
+  "entityType": "Core",
+  "description": "投资者持有的基金投资",
+  "attributes": [
+    {
+      "name": "investmentId",
+      "type": "String",
+      "description": "投资唯一标识符",
+      "isIdentifier": true,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "shares",
+      "type": "Decimal",
+      "description": "持有份额",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "averageCost",
+      "type": "Money",
+      "description": "平均成本",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "currentValue",
+      "type": "Money",
+      "description": "当前市值",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "investmentDate",
+      "type": "Date",
+      "description": "投资日期",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    }
+  ],
+  "relationships": [
+    {
+      "target": "Investor",
+      "type": "N:1",
+      "description": "投资属于某个投资者",
+      "semantics": "dependency",
+      "sources": ["fidelity-doc-001"]
+    },
+    {
+      "target": "MutualFund",
+      "type": "N:1",
+      "description": "投资针对某个基金",
+      "semantics": "reference",
+      "sources": ["fidelity-doc-001"]
+    }
+  ],
+  "businessRules": [
+    {
+      "ruleId": "BR003",
+      "description": "分散投资和资产配置不能保证盈利或防止损失",
+      "sources": ["fidelity-doc-001"]
+    }
+  ],
+  "sources": ["fidelity-doc-001"],
+  "createdAt": "2024-01-15T10:00:00Z",
+  "updatedAt": "2024-01-15T10:00:00Z",
+  "mergeHistory": []
+}

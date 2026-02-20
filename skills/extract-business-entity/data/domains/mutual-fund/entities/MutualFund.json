@@ -1,0 +1,88 @@
+{
+  "name": "MutualFund",
+  "domain": "mutual-fund",
+  "version": "1.0.0",
+  "entityType": "Core",
+  "description": "共同基金产品，汇集投资者资金进行多元化投资的金融工具",
+  "attributes": [
+    {
+      "name": "fundId",
+      "type": "String",
+      "description": "基金唯一标识符",
+      "isIdentifier": true,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "name",
+      "type": "String",
+      "description": "基金名称",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "investmentObjective",
+      "type": "String",
+      "description": "投资目标",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "riskLevel",
+      "type": "String",
+      "description": "风险等级",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    }
+  ],
+  "relationships": [
+    {
+      "target": "Prospectus",
+      "type": "1:1",
+      "description": "每只基金必须有招募说明书",
+      "semantics": "composition",
+      "sources": ["fidelity-doc-001"]
+    },
+    {
+      "target": "Fee",
+      "type": "1:N",
+      "description": "基金关联多种费用",
+      "semantics": "composition",
+      "sources": ["fidelity-doc-001"]
+    },
+    {
+      "target": "Investment",
+      "type": "1:N",
+      "description": "基金被多个投资者持有",
+      "semantics": "reference",
+      "sources": ["fidelity-doc-001"]
+    }
+  ],
+  "businessRules": [
+    {
+      "ruleId": "BR001",
+      "description": "必须披露投资目标、风险、费用和开支",
+      "sources": ["fidelity-doc-001"]
+    },
+    {
+      "ruleId": "BR002",
+      "description": "过往业绩不能保证未来结果",
+      "sources": ["fidelity-doc-001"]
+    }
+  ],
+  "lifecycle": {
+    "states": ["筹备期", "开放认购", "运作中", "清算"],
+    "initialState": "筹备期"
+  },
+  "sources": ["fidelity-doc-001"],
+  "createdAt": "2024-01-15T10:00:00Z",
+  "updatedAt": "2024-01-15T10:00:00Z",
+  "mergeHistory": []
+}

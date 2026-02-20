@@ -1,0 +1,90 @@
+{
+  "name": "Transaction",
+  "domain": "mutual-fund",
+  "version": "1.0.0",
+  "entityType": "Supporting",
+  "description": "基金交易记录",
+  "attributes": [
+    {
+      "name": "transactionId",
+      "type": "String",
+      "description": "交易唯一标识符",
+      "isIdentifier": true,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "type",
+      "type": "String",
+      "description": "交易类型（购买/赎回/转换）",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "amount",
+      "type": "Money",
+      "description": "交易金额",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "shares",
+      "type": "Decimal",
+      "description": "交易份额",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "transactionDate",
+      "type": "DateTime",
+      "description": "交易时间",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "holdingDays",
+      "type": "Integer",
+      "description": "持仓天数",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    }
+  ],
+  "relationships": [
+    {
+      "target": "Investor",
+      "type": "N:1",
+      "description": "交易由投资者执行",
+      "semantics": "dependency",
+      "sources": ["fidelity-doc-001"]
+    },
+    {
+      "target": "MutualFund",
+      "type": "N:1",
+      "description": "交易针对某个基金",
+      "semantics": "reference",
+      "sources": ["fidelity-doc-001"]
+    }
+  ],
+  "businessRules": [
+    {
+      "ruleId": "BR007",
+      "description": "卖出或交换NTF基金时，如持仓少于60天需收取短期交易费",
+      "sources": ["fidelity-doc-001"]
+    }
+  ],
+  "sources": ["fidelity-doc-001"],
+  "createdAt": "2024-01-15T10:00:00Z",
+  "updatedAt": "2024-01-15T10:00:00Z",
+  "mergeHistory": []
+}

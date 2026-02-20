@@ -1,5 +1,5 @@
 ---
-description: 自动化构建、演化与治理领域模型的技能。用于从代码、文档或业务描述中抽取领域概念，构建实体、关系、聚合与不变式模型，并以结构化形式持久化。
+description: 自动化构建、演化与治理领域模型的引擎。从extract-business-entity提取的Domain数据出发，进行聚合推断、关系分析、不变式建模，生成完整的领域模型并支持版本演化对比。用于从代码、文档或业务描述中抽取领域概念，构建实体、关系、聚合与不变式模型。
 name: domain-modeling-engine
 ---
 
@@ -9,273 +9,529 @@ name: domain-modeling-engine
 
 该技能用于：
 
-> 自动识别、构建和演化领域模型，而不是简单的数据存储。
+> 自动识别、构建和演化领域模型，消费 `extract-business-entity` 生成的Domain数据，输出完整的领域架构。
 
-它强调：
+### 与 extract-business-entity 的关系
 
--   领域概念抽象
--   实体与值对象区分
--   聚合与边界识别
--   不变式表达
--   关系语义建模
--   结构版本演化
+```
+┌─────────────────────────┐      ┌─────────────────────────┐
+│  extract-business-entity │ ───► │  domain-modeling-engine │
+│    (实体提取与合并)       │      │    (模型构建与演化)       │
+├─────────────────────────┤      ├─────────────────────────┤
+│ - 提取业务实体            │      │ - 聚合推断               │
+│ - 增量合并               │      │ - 关系语义分析            │
+│ - 版本管理               │      │ - 不变式建模             │
+│ - 冲突标记               │      │ - 限界上下文识别          │
+│ - 来源追溯               │      │ - 模型版本对比            │
+└─────────────────────────┘      └─────────────────────────┘
+         │                                 │
+         ▼                                 ▼
+   data/domains/{domain}/           output/domain-models/
+   ├── entities/                     ├── {domain}-model.json
+   ├── versions/                     ├── {domain}-diagram.mmd
+   └── merges/                       └── {domain}-report.md
+```
 
-数据库只是持久化手段，而不是目标。
+**工作流**:
+1. `extract-business-entity` 负责从各种材料中提取实体并维护Domain版本
+2. `domain-modeling-engine` 读取Domain数据，进行高级建模分析
+3. 两者协同实现完整的增量式领域建模
 
-------------------------------------------------------------------------
+---
 
-## 二、设计原则
+## 二、输入规范
 
-### 1️⃣ 领域优先（Domain First）
+### 输入来源
 
-模型表达的是：
+引擎从以下位置读取Domain数据：
 
--   业务语义
--   约束规则
--   生命周期
--   关系语义
+```
+skills/extract-business-entity/data/domains/{domain-name}/
+├── domain.json              # Domain元数据
+├── entities/                # 实体定义
+│   ├── {EntityName}.json
+│   └── ...
+└── versions/                # 版本历史
+    └── {version}.json
+```
 
-而不是：
+### 实体数据格式
 
--   CRUD 结构
--   表结构设计
+```json
+{
+  "name": "MutualFund",
+  "domain": "mutual-fund",
+  "version": "1.2.0",
+  "description": "共同基金产品",
+  "attributes": [...],
+  "relationships": [...],
+  "businessRules": [...],
+  "sources": ["doc-a", "code-b"],
+  "createdAt": "...",
+  "updatedAt": "..."
+}
+```
 
-------------------------------------------------------------------------
-
-### 2️⃣ 聚合意识（Aggregate Awareness）
-
-该技能不仅抽取实体，还会：
-
--   识别可能的聚合根
--   分析实体间依赖方向
--   识别跨聚合引用
--   推断事务边界
-
-------------------------------------------------------------------------
-
-### 3️⃣ 不变式驱动（Invariant Driven）
-
-支持自动识别和建模：
-
--   Validation Rules
--   Business Constraints
--   Domain Invariants
--   Lifecycle Transitions
-
-所有规则都与实体或聚合显式绑定。
-
-------------------------------------------------------------------------
-
-### 4️⃣ 模型可演化（Model Evolvable）
-
-领域模型支持：
-
--   版本化管理
--   结构 Diff
--   变更审计
--   聚合边界变化分析
--   向前兼容性检测
-
-------------------------------------------------------------------------
+---
 
 ## 三、核心能力
 
-### 1️⃣ 领域概念抽取
+### 1️⃣ 聚合推断 (Aggregate Inference)
 
-支持从以下输入中自动抽取结构化领域概念：
+通过分析实体间关系，推断聚合边界：
 
--   TypeScript / Java / Python 类定义
--   API Schema
--   PRD 文档
--   数据表结构
--   业务说明文本
+```
+分析维度:
+├─ 外键方向 (谁持有引用)
+├─ 修改频率 (同时变更的频率)
+├─ 不变式作用范围 (规则跨越哪些实体)
+├─ 生命周期依赖 (创建/删除依赖)
+└─ 事务边界 (业务操作的原子性)
 
-可识别：
+输出:
+├─ 聚合根识别
+├─ 聚合边界划分
+└─ 跨聚合引用标记
+```
 
--   Entity
--   Value Object
--   Enum
--   Aggregate
--   Domain Service
+### 2️⃣ 关系语义分析 (Relationship Semantic Analysis)
 
-------------------------------------------------------------------------
+不仅识别结构关系，还识别语义：
 
-### 2️⃣ 关系语义识别
+| 结构关系 | 语义关系 | 说明 |
+|---------|---------|------|
+| 1:1 | ownership | 拥有关系 |
+| 1:N | composition | 组合关系 |
+| N:1 | reference | 引用关系 |
+| M:N | association | 关联关系 |
 
-不仅识别结构关系：
+### 3️⃣ 不变式建模 (Invariant Modeling)
 
--   1:1
--   1:N
--   M:N
+将业务规则建模为领域不变式：
 
-还识别语义关系：
+```
+输入: businessRules[]
+输出:
+├─ Entity Invariants (实体级别不变式)
+│   └─ 如: MutualFund.fees must not be empty
+├─ Aggregate Invariants (聚合级别不变式)
+│   └─ 如: Investment.totalAmount = sum(Transaction.amount)
+└─ Cross-Aggregate Constraints (跨聚合约束)
+    └─ 如: Investor.totalInvestment ≤ Investor.riskLimit
+```
 
--   ownership
--   composition
--   reference
--   dependency
--   lifecycle coupling
+### 4️⃣ 限界上下文识别 (Bounded Context Identification)
 
-------------------------------------------------------------------------
+基于实体聚类和关系分析，识别限界上下文：
 
-### 3️⃣ 聚合推断
+```
+分析信号:
+├─ 高频内部交互，低频外部交互
+├─ 统一业务术语
+├─ 独立生命周期
+└─ 独立部署边界
 
-通过分析：
+输出:
+├─ BoundedContext定义
+├─ 上下文映射 (Context Map)
+└─ 集成模式建议 (ACL, OHS, etc.)
+```
 
--   外键方向
--   修改频率
--   不变式作用范围
--   事务边界
--   生命周期依赖
+### 5️⃣ 模型版本对比 (Model Version Diff)
 
-推断：
+对比两个版本的领域模型：
 
--   候选聚合根
--   聚合边界
--   跨聚合引用风险
+```
+对比维度:
+├─ 实体增删改
+├─ 属性变化
+├─ 关系变化
+├─ 聚合边界变化
+├─ 不变式变化
+└─ 限界上下文变化
 
-------------------------------------------------------------------------
+输出:
+├─ 变更摘要
+├─ 影响分析
+└─ 迁移建议
+```
 
-### 4️⃣ 规则建模
+---
 
-支持抽取并建模：
+## 四、输出规范
 
--   业务规则
--   校验规则
--   领域不变式
--   生命周期状态机
--   约束表达式
+### 输出结构
 
-并与实体或聚合强绑定。
+```
+skills/domain-modeling-engine/output/
+└── {domain-name}/
+    ├── model.json              # 完整领域模型 (JSON DSL)
+    ├── diagram.mmd             # Mermaid ER图
+    ├── context-map.mmd         # 限界上下文图
+    ├── report.md               # 建模报告
+    └── versions/               # 历史模型版本
+        └── {version}/
+            ├── model.json
+            ├── diagram.mmd
+            └── report.md
+```
 
-------------------------------------------------------------------------
+### 模型JSON格式
 
-### 5️⃣ 模型输出能力
+```json
+{
+  "domain": {
+    "name": "mutual-fund",
+    "version": "1.2.0",
+    "description": "共同基金投资领域",
+    "generatedAt": "2024-01-20T15:00:00Z"
+  },
+  "entities": [
+    {
+      "name": "MutualFund",
+      "type": "AggregateRoot",
+      "attributes": [...],
+      "invariants": [...]
+    }
+  ],
+  "aggregates": [
+    {
+      "name": "FundAggregate",
+      "root": "MutualFund",
+      "entities": ["MutualFund", "Fee", "Prospectus"],
+      "invariants": [...]
+    }
+  ],
+  "boundedContexts": [
+    {
+      "name": "ProductManagement",
+      "entities": ["MutualFund", "Fee", "Prospectus"],
+      "domainServices": ["FundEvaluator"]
+    }
+  ],
+  "relationships": [
+    {
+      "source": "MutualFund",
+      "target": "Fee",
+      "type": "1:N",
+      "semantics": "composition"
+    }
+  ],
+  "domainEvents": [
+    {
+      "name": "FundCreated",
+      "payload": ["fundId", "name"],
+      "producers": ["FundApplicationService"],
+      "consumers": ["ReportingContext"]
+    }
+  ]
+}
+```
 
-可导出为：
+---
 
--   JSON 领域 DSL
--   Mermaid ER 图
--   OpenAPI Schema
--   Graph Schema
--   结构变更报告
--   聚合边界分析报告
+## 五、工作流程
 
-------------------------------------------------------------------------
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Domain Modeling Engine                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. 读取Domain数据                                               │
+│     └─ 从 extract-business-entity/data/domains/{domain}/        │
+│                                                                 │
+│  2. 实体分析                                                     │
+│     ├─ 分类: 核心实体 / 支持实体 / 值对象                         │
+│     ├─ 识别标识符                                                │
+│     └─ 分析属性类型                                               │
+│                                                                 │
+│  3. 关系分析                                                     │
+│     ├─ 构建关系图                                                │
+│     ├─ 识别关系语义                                              │
+│     └─ 标记导航方向                                               │
+│                                                                 │
+│  4. 聚合推断                                                     │
+│     ├─ 候选聚合根识别                                             │
+│     ├─ 聚合边界划分                                               │
+│     └─ 跨聚合引用标记                                             │
+│                                                                 │
+│  5. 不变式建模                                                   │
+│     ├─ 实体不变式                                                │
+│     ├─ 聚合不变式                                                │
+│     └─ 跨聚合约束                                                │
+│                                                                 │
+│  6. 限界上下文识别                                                │
+│     ├─ 实体聚类分析                                               │
+│     ├─ 上下文边界划分                                             │
+│     └─ 上下文映射构建                                             │
+│                                                                 │
+│  7. 领域事件识别                                                  │
+│     ├─ 从业务规则推导                                             │
+│     └─ 标记发布者/消费者                                          │
+│                                                                 │
+│  8. 生成输出                                                     │
+│     ├─ JSON领域模型                                              │
+│     ├─ Mermaid图表                                               │
+│     └─ 建模报告                                                  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-## 四、系统架构视图
+---
 
-    ┌──────────────────────────────────────────────────────────┐
-    │                  Domain Modeling Engine                  │
-    ├──────────────────────────────────────────────────────────┤
-    │  Concept Extraction                                     │
-    │  ├─ Entity Detection                                    │
-    │  ├─ Value Object Detection                              │
-    │  ├─ Enum Detection                                      │
-    │                                                          │
-    │  Semantic Relation Analysis                             │
-    │  ├─ Structural Dependency                               │
-    │  ├─ Ownership Analysis                                  │
-    │  ├─ Lifecycle Coupling                                  │
-    │                                                          │
-    │  Aggregate Inference                                    │
-    │  Invariant Modeling                                     │
-    │                                                          │
-    │  Model Persistence Layer                                │
-    │  (SQLite / JSON / Git / Graph)                          │
-    └──────────────────────────────────────────────────────────┘
+## 六、使用场景
 
-数据库属于：
+### 场景1: 生成完整领域模型
 
-> Model Persistence Layer
+```
+用户: 为mutual-fund Domain生成完整的领域模型
 
-而非建模核心。
+AI执行:
+1. 读取 data/domains/mutual-fund/entities/
+2. 执行聚合推断
+3. 识别限界上下文
+4. 建模不变式
+5. 生成:
+   - output/mutual-fund/model.json
+   - output/mutual-fund/diagram.mmd
+   - output/mutual-fund/context-map.mmd
+   - output/mutual-fund/report.md
+```
 
-------------------------------------------------------------------------
+### 场景2: 对比模型版本
 
-## 五、适用场景
+```
+用户: 对比mutual-fund Domain v1.0.0和v1.2.0的领域模型变化
 
-### ✅ 适用
+AI执行:
+1. 读取两个版本的实体数据
+2. 分别构建领域模型
+3. 对比差异:
+   - 新增/删除的实体
+   - 属性变化
+   - 聚合边界变化
+   - 限界上下文变化
+4. 生成差异报告
+```
 
--   企业级领域模型构建
--   遗留系统反向抽象
--   DDD 实践辅助
--   架构治理
--   多团队领域对齐
--   结构一致性检测
--   聚合边界分析
--   领域模型版本对比
+### 场景3: 增量更新模型
 
-### ❌ 不适用
+```
+用户: mutual-fund Domain已更新到v1.3.0，重新生成领域模型
 
--   仅做数据存储
--   仅做 CRUD 生成
--   仅做 RAG 问答系统
--   仅做图数据库查询工具
+AI执行:
+1. 检测Domain版本变化
+2. 读取最新实体数据
+3. 重新执行完整建模流程
+4. 对比上一版本模型
+5. 生成变更摘要
+6. 保存新版本模型
+```
 
-------------------------------------------------------------------------
+---
 
-## 六、理论基础
+## 七、聚合推断算法
 
-该引擎的理论基础源自：
+```
+function inferAggregates(entities, relationships):
+    // 1. 构建依赖图
+    dependencyGraph = buildDependencyGraph(entities, relationships)
+    
+    // 2. 识别候选聚合根
+    candidateRoots = []
+    for entity in entities:
+        score = calculateRootScore(entity, dependencyGraph)
+        if score > THRESHOLD:
+            candidateRoots.push(entity)
+    
+    // 3. 划分聚合边界
+    aggregates = []
+    for root in candidateRoots:
+        aggregate = {
+            root: root.name,
+            entities: collectAggregateEntities(root, dependencyGraph),
+            invariants: extractInvariants(root, dependencyGraph)
+        }
+        aggregates.push(aggregate)
+    
+    // 4. 标记跨聚合引用
+    for aggregate in aggregates:
+        aggregate.crossAggregateRefs = findCrossReferences(
+            aggregate, 
+            aggregates
+        )
+    
+    return aggregates
 
--   《Domain-Driven Design》------ Eric Evans
+// 聚合根评分维度
+function calculateRootScore(entity, graph):
+    score = 0
+    score += entity.hasLifecycle // 有独立生命周期
+    score += graph.inDegree(entity) > 0 // 被其他实体引用
+    score += entity.hasBusinessKey // 有业务标识
+    score += graph.modifiedTogether(entity) // 高频同时修改
+    return score
+```
 
-核心概念包括：
+---
 
--   Entity
--   Value Object
--   Aggregate
--   Bounded Context
--   Invariant
--   Domain Service
+## 八、限界上下文识别算法
 
-本技能旨在自动化支持 DDD 实践，而非替代架构设计思考。
+```
+function identifyBoundedContexts(entities, relationships):
+    // 1. 构建实体交互矩阵
+    interactionMatrix = buildInteractionMatrix(entities, relationships)
+    
+    // 2. 聚类分析
+    clusters = clusterEntities(interactionMatrix)
+    
+    // 3. 识别上下文
+    boundedContexts = []
+    for cluster in clusters:
+        context = {
+            name: inferContextName(cluster),
+            entities: cluster.entities,
+            domainServices: extractServices(cluster),
+            repositories: extractRepositories(cluster)
+        }
+        boundedContexts.push(context)
+    
+    // 4. 构建上下文映射
+    contextMap = buildContextMap(boundedContexts, relationships)
+    
+    return { boundedContexts, contextMap }
+```
 
-------------------------------------------------------------------------
+---
 
-## 七、战略定位
+## 九、输出示例
 
-这不是：
+### 建模报告 (report.md)
 
-> 轻量图数据库方案
+```markdown
+# 领域建模报告: mutual-fund
 
-也不是：
+## 概览
+- **Domain**: mutual-fund
+- **版本**: v1.2.0
+- **生成时间**: 2024-01-20 15:00:00
+- **来源**: extract-business-entity
 
-> SQLite 建模脚手架
+## 统计摘要
+- 实体总数: 10
+  - 聚合根: 3
+  - 普通实体: 5
+  - 值对象: 2
+- 聚合数: 3
+- 限界上下文: 4
+- 领域事件: 8
 
-而是：
+## 聚合划分
 
-> 企业级领域抽象与建模自动化引擎
+### Aggregate: FundAggregate
+- **聚合根**: MutualFund
+- **包含实体**: MutualFund, Fee, Prospectus
+- **业务规则**:
+  - 基金必须有至少一种费用
+  - 基金必须有招募说明书
 
-------------------------------------------------------------------------
+### Aggregate: InvestmentAggregate
+- **聚合根**: Investment
+- **包含实体**: Investment, Transaction
+- **业务规则**:
+  - 投资金额必须等于交易金额总和
 
-## 八、可扩展方向
+### Aggregate: InvestorAggregate
+- **聚合根**: Investor
+- **包含实体**: Investor
 
--   跨上下文依赖图构建
--   自动识别 Bounded Context
--   事件风暴结果自动结构化
--   领域模型与代码结构一致性检测
--   架构腐化趋势分析
--   模型演化预测
+## 限界上下文
 
-------------------------------------------------------------------------
+### ProductManagement (产品管理)
+- **职责**: 基金产品信息管理
+- **实体**: MutualFund, Fee, Prospectus
+- **服务**: FundEvaluator
 
-## 九、命名建议
+### InvestmentManagement (投资管理)
+- **职责**: 投资者账户和持仓管理
+- **实体**: Investor, Investment, Transaction
 
-推荐名称：
+### Compliance (合规)
+- **职责**: 风险披露和合规检查
+- **实体**: RiskDisclosure, ComplianceReport
 
--   domain-modeling-engine
--   domain-architecture-engine
--   domain-structure-governor
--   domain-intelligence-engine
+### ToolService (工具服务)
+- **职责**: 提供自助评估工具
+- **服务**: FundEvaluator
 
-不建议使用：
+## 上下文映射
 
--   lite
--   simple
--   demo
+```mermaid
+graph TB
+    PM[ProductManagement] -->|OHS| IM[InvestmentManagement]
+    PM -->|PL| C[Compliance]
+    IM -->|ACL| C
+    TS[ToolService] -->|ACL| PM
+```
 
-因为该能力本质上属于：
+## 领域事件流
 
-> 架构级智能系统
+```
+FundCreated (ProductManagement)
+    └──► FundPublished (ProductManagement)
+            └──► InvestmentCreated (InvestmentManagement)
+                    └──► TransactionExecuted (InvestmentManagement)
+```
+
+## 建议
+
+1. **聚合优化**: Investment和Transaction可考虑分离为两个聚合
+2. **上下文边界**: FundEvaluator当前在两个上下文出现，建议统一归属
+3. **事件缺失**: 建议添加FeeChanged事件用于费用变更通知
+```
+
+---
+
+## 十、指令
+
+1. **读取Domain数据**: 从 `extract-business-entity/data/domains/{domain}/` 读取实体定义
+2. **执行聚合推断**: 分析实体关系，识别聚合根和边界
+3. **建模不变式**: 将业务规则转化为领域不变式
+4. **识别限界上下文**: 基于实体聚类识别上下文边界
+5. **推导领域事件**: 从业务规则和状态变化推导事件
+6. **生成模型输出**: 输出JSON模型、Mermaid图、建模报告
+7. **支持版本对比**: 能够对比不同版本的领域模型差异
+8. **增量更新**: 检测到Domain更新时，重新生成模型并输出变更摘要
+
+---
+
+## 十一、与extract-business-entity的协作示例
+
+```
+完整工作流程:
+
+第1轮 - 从文档提取:
+├─ 用户: 从fidelity-doc.md提取实体，创建mutual-fund Domain
+├─ extract-business-entity:
+│   └─ 创建 v1.0.0: 7个实体 (MutualFund, Investor, ...)
+└─ domain-modeling-engine:
+    └─ 生成模型 v1.0.0: 3个聚合, 4个上下文
+
+第2轮 - 从代码增量:
+├─ 用户: 从trading-code.ts提取，合并到mutual-fund Domain
+├─ extract-business-entity:
+│   └─ 更新到 v1.1.0: 新增3个实体 (Order, TradeExecution, Settlement)
+└─ domain-modeling-engine:
+    └─ 重新生成模型 v1.1.0: 4个聚合, 4个上下文
+    └─ 输出变更: 新增TradingAggregate
+
+第3轮 - 查看演化:
+├─ 用户: 显示mutual-fund Domain的模型演化历史
+└─ domain-modeling-engine:
+    └─ 对比 v1.0.0 vs v1.1.0
+    └─ 展示聚合变化和新增事件
+```
+
+---
+
+*该引擎与 extract-business-entity 协同工作，实现完整的增量式领域建模能力。*

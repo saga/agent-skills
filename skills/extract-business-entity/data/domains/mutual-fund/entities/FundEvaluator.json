@@ -1,0 +1,56 @@
+{
+  "name": "FundEvaluator",
+  "domain": "mutual-fund",
+  "version": "1.0.0",
+  "entityType": "Supporting",
+  "description": "基金评估工具",
+  "attributes": [
+    {
+      "name": "evaluatorId",
+      "type": "String",
+      "description": "评估工具ID",
+      "isIdentifier": true,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "criteria",
+      "type": "List<String>",
+      "description": "评估标准",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "name": "disclaimer",
+      "type": "Text",
+      "description": "免责声明",
+      "isIdentifier": false,
+      "sources": ["fidelity-doc-001"],
+      "addedAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-15T10:00:00Z"
+    }
+  ],
+  "relationships": [
+    {
+      "target": "MutualFund",
+      "type": "N:M",
+      "description": "评估工具评估多个基金",
+      "semantics": "association",
+      "sources": ["fidelity-doc-001"]
+    }
+  ],
+  "businessRules": [
+    {
+      "ruleId": "BR008",
+      "description": "基金评估工具仅用于自助投资者评估，不构成投资建议",
+      "sources": ["fidelity-doc-001"]
+    }
+  ],
+  "sources": ["fidelity-doc-001"],
+  "createdAt": "2024-01-15T10:00:00Z",
+  "updatedAt": "2024-01-15T10:00:00Z",
+  "mergeHistory": []
+}
